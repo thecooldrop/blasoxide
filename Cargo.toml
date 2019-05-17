@@ -1,0 +1,11 @@
+[package]
+name = "blasoxide"
+version = "0.1.0"
+authors = ["Özgür Akkurt <oezgurmakkurt@gmail.com>"]
+edition = "2018"
+description = "BLAS implementation in rust"
+repository = "https://github.com/oezgurmakkurt/blasoxide"
+readme = "README.md"
+keywords = ["science", "math", "simd"]
+categories = ["science"]
+license = "MIT"
