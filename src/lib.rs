@@ -82,3 +82,56 @@ pub unsafe fn srot(
         }
     }
 }
+
+pub unsafe fn sswap(n: usize, mut x: *mut f32, incx: isize, mut y: *mut f32, incy: isize) {
+    if incx == 1 && incy == 1 {
+        for _ in 0..n / STEP {
+            unroll4!({
+                let xv = _mm256_loadu_ps(x);
+                let yv = _mm256_loadu_ps(y);
+                _mm256_storeu_ps(x, yv);
+                _mm256_storeu_ps(y, xv);
+                x = x.offset(8);
+                y = y.offset(8);
+            });
+        }
+        for _ in 0..n % STEP {
+            let xi = *x;
+            let yi = *y;
+
+            *x = yi;
+            *y = xi;
+
+            x = x.offset(1);
+            y = y.offset(1);
+        }
+    } else {
+        for _ in 0..n {
+            let xi = *x;
+            let yi = *y;
+
+            *x = yi;
+            *y = xi;
+
+            x = x.offset(incx);
+            y = y.offset(incy);
+        }
+    }
+}
+
+pub unsafe fn sscal(n: usize, a: f32, mut x: *mut f32, incx: isize) {
+    if incx == 1 {
+        let av = _mm256_broadcast_ss(&a);
+        for _ in 0..n / STEP {
+            unroll4!({
+                _mm256_storeu_ps(x, _mm256_mul_ps(av, _mm256_loadu_ps(x)));
+                x = x.offset(8);
+            });
+        }
+    } else {
+        for _ in 0..n {
+            *x *= a;
+            x = x.offset(incx);
+        }
+    }
+}
