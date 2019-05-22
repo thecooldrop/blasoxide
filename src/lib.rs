@@ -128,6 +128,10 @@ pub unsafe fn sscal(n: usize, a: f32, mut x: *mut f32, incx: isize) {
                 x = x.offset(8);
             });
         }
+        for _ in 0..n % STEP {
+            *x *= a;
+            x = x.offset(1);
+        }
     } else {
         for _ in 0..n {
             *x *= a;
