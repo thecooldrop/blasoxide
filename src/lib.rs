@@ -209,3 +209,13 @@ pub unsafe fn sdot(n: usize, mut x: *const f32, incx: isize, mut y: *const f32, 
         acc
     }
 }
+
+pub unsafe fn sdsdot(n: usize, b: f32, mut x: *const f32, incx: isize, mut y: *const f32, incy: isize) -> f32 {
+    let mut acc: f64 = b as f64;
+    for _ in 0..n {
+        acc += *x as f64 * *y as f64;
+        x = x.offset(incx);
+        y = y.offset(incy);
+    }
+    acc as f32
+}
