@@ -21,6 +21,8 @@ pub unsafe fn sgemm(
     const KC: usize = 128;
     const UNROLL: usize = 4;
 
+    let mut packed_a = vec![0.0; MC * KC];
+
     for p in (0..k).step_by(KC) {
         let pb = std::cmp::min(k - p, KC);
         for i in (0..m).step_by(MC) {
@@ -35,6 +37,7 @@ pub unsafe fn sgemm(
                 ldb,
                 c.add(i),
                 ldc,
+                packed_a.as_mut_ptr(),
             );
         }
     }
@@ -49,19 +52,32 @@ pub unsafe fn sgemm(
         ldb: usize,
         c: *mut f32,
         ldc: usize,
+        packed_a: *mut f32,
     ) {
         for j in (0..n).step_by(UNROLL) {
             for i in (0..m).step_by(8) {
+                if j == 0 {
+                    pack_a(k, a.add(i), lda, packed_a.add(i * k));
+                }
                 add_dot_4x8(
                     k,
-                    a.add(i),
-                    lda,
+                    packed_a.add(i * k),
+                    8,
                     b.add(j * ldb),
                     ldb,
                     c.add(i + j * ldc),
                     ldc,
                 );
             }
+        }
+    }
+
+    unsafe fn pack_a(k: usize, mut a: *const f32, lda: usize, mut a_to: *mut f32) {
+        for _ in 0..k {
+            _mm256_storeu_ps(a_to, _mm256_loadu_ps(a));
+
+            a = a.add(lda);
+            a_to = a_to.add(8);
         }
     }
 

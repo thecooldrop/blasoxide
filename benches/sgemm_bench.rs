@@ -19,19 +19,7 @@ fn criterion_benchmark(cri: &mut Criterion) {
     cri.bench_function("sgemm", move |bencher| {
         bencher.iter(|| unsafe {
             black_box(sgemm(
-                false,
-                false,
-                LEN,
-                LEN,
-                LEN,
-                1.0,
-                ap,
-                LEN,
-                bp,
-                LEN,
-                1.0,
-                cp,
-                LEN,
+                false, false, LEN, LEN, LEN, 1.0, ap, LEN, bp, LEN, 1.0, cp, LEN,
             ));
         });
     });
