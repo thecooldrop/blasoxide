@@ -2,14 +2,9 @@
 
 use core::arch::x86_64::*;
 
-macro_rules! unroll4 {
-    ($e:expr) => {{
-        $e;
-        $e;
-        $e;
-        $e;
-    }};
-}
+#[macro_use]
+mod common;
+
 const STEP: usize = 8 * 4;
 
 pub fn srotg(a: f32, b: f32) -> (f32, f32, f32, f32) {
@@ -184,5 +179,33 @@ pub unsafe fn saxpy(n: usize, a: f32, mut x: *const f32, incx: isize, mut y: *mu
             x = x.offset(incx);
             y = y.offset(incy);
         }
+    }
+}
+
+pub unsafe fn sdot(n: usize, mut x: *const f32, incx: isize, mut y: *const f32, incy: isize) -> f32 {
+    if incx == 1 && incy == 1 {
+        let mut acc = _mm256_setzero_ps();
+        for _ in 0..n/STEP {
+            unroll4!({
+                acc = _mm256_fmadd_ps(_mm256_loadu_ps(x), _mm256_loadu_ps(y), acc);
+                x = x.offset(8);
+                y = y.offset(8);
+            });
+        }
+        let mut acc = common::hadd_ps(acc);
+        for _ in 0..n%STEP {
+            acc += *x * *y;
+            x = x.offset(1);
+            y = y.offset(1);
+        }
+        acc
+    } else {
+        let mut acc = 0.0;
+        for _ in 0..n {
+            acc += *x * *y;
+            x = x.offset(incx);
+            y = y.offset(incy);
+        }
+        acc
     }
 }
