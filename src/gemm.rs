@@ -9,67 +9,57 @@ pub unsafe fn sgemm(
     n: usize,
     k: usize,
     _alpha: f32,
-    mut a: *const f32,
-    lda: isize,
-    mut b: *const f32,
-    ldb: isize,
+    a: *const f32,
+    lda: usize,
+    b: *const f32,
+    ldb: usize,
     _beta: f32,
-    mut c: *mut f32,
-    ldc: isize,
+    c: *mut f32,
+    ldc: usize,
 ) {
     const MC: usize = 256;
     const KC: usize = 128;
     const UNROLL: usize = 4;
 
-    for _ in 0..k / KC {
-        for _ in 0..m / MC {
-            inner_kernel(MC, n, KC, a, lda, b, ldb, c, ldc);
-
-            b = b.add(MC);
-            c = c.add(MC);
+    for p in (0..k).step_by(KC) {
+        let pb = std::cmp::min(k-p, KC);
+        for i in (0..m).step_by(MC) {
+            let ib = std::cmp::min(m-i, MC);
+            inner_kernel(ib, n, pb, a.add(i + p * lda), lda, b.add(p), ldb, c.add(i), ldc);
         }
-
-        a = a.offset(KC as isize * ldb);
-        b = b.add(KC);
     }
 
     unsafe fn inner_kernel(
         m: usize,
         n: usize,
         k: usize,
-        mut a: *const f32,
-        lda: isize,
-        mut b: *const f32,
-        ldb: isize,
-        mut c: *mut f32,
-        ldc: isize,
+        a: *const f32,
+        lda: usize,
+        b: *const f32,
+        ldb: usize,
+        c: *mut f32,
+        ldc: usize,
     ) {
-        for _ in 0..n / UNROLL {
-            for _ in 0..m / 8 {
-                add_dot_4x8(k, a, lda, b, ldb, c, ldc);
-                
-                a = a.add(8);
-                c = c.add(8);
+        for j in (0..n).step_by(UNROLL) {
+            for i in (0..m).step_by(8) {
+                add_dot_4x8(k, a.add(i), lda, b.add(j * ldb), ldb, c.add(i + j * ldc), ldc);
             }
-
-            b = b.offset(UNROLL as isize * ldb);
-            c = c.offset(UNROLL as isize * ldc);
         }
     }
 
     unsafe fn add_dot_4x8(
         k: usize,
         mut a: *const f32,
-        lda: isize,
+        lda: usize,
         b: *const f32,
-        ldb: isize,
+        ldb: usize,
         c: *mut f32,
-        ldc: isize,
+        ldc: usize,
     ) {
         let mut bptr0 = b;
-        let mut bptr1 = b.offset(ldb);
-        let mut bptr2 = b.offset(2 * ldb);
-        let mut bptr3 = b.offset(3 * ldb);
+        let mut bptr1 = b.add(ldb);
+        let mut bptr2 = b.add(2 * ldb);
+        let mut bptr3 = b.add(3 * ldb);
 
         let mut c0_reg_v = _mm256_setzero_ps();
         let mut c1_reg_v = _mm256_setzero_ps();
@@ -88,21 +78,58 @@ pub unsafe fn sgemm(
             c2_reg_v = _mm256_fmadd_ps(a0_reg_v, bp2reg, c2_reg_v);
             c3_reg_v = _mm256_fmadd_ps(a0_reg_v, bp3reg, c3_reg_v);
 
-            a = a.offset(lda);
-            bptr0 = bptr0.offset(1);
-            bptr1 = bptr1.offset(1);
-            bptr2 = bptr2.offset(1);
-            bptr3 = bptr3.offset(1);
+            a = a.add(lda);
+            bptr0 = bptr0.add(1);
+            bptr1 = bptr1.add(1);
+            bptr2 = bptr2.add(1);
+            bptr3 = bptr3.add(1);
         }
 
         let cptr0 = &mut *c;
-        let cptr1 = &mut *c.offset(ldc);
-        let cptr2 = &mut *c.offset(2 * ldc);
-        let cptr3 = &mut *c.offset(3 * ldc);
+        let cptr1 = &mut *c.add(ldc);
+        let cptr2 = &mut *c.add(2 * ldc);
+        let cptr3 = &mut *c.add(3 * ldc);
 
         _mm256_storeu_ps(cptr0, _mm256_add_ps(_mm256_loadu_ps(cptr0), c0_reg_v));
         _mm256_storeu_ps(cptr1, _mm256_add_ps(_mm256_loadu_ps(cptr1), c1_reg_v));
         _mm256_storeu_ps(cptr2, _mm256_add_ps(_mm256_loadu_ps(cptr2), c2_reg_v));
         _mm256_storeu_ps(cptr3, _mm256_add_ps(_mm256_loadu_ps(cptr3), c3_reg_v));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sgemm() {
+        const LEN: usize = 1024;
+        let a = vec![1.0; LEN * LEN];
+        let b = vec![1.0; LEN * LEN];
+        let mut c = vec![0.0; LEN * LEN];
+
+        unsafe {
+            sgemm(
+                false,
+                false,
+                LEN,
+                LEN,
+                LEN,
+                1.0,
+                a.as_ptr(),
+                LEN,
+                b.as_ptr(),
+                LEN,
+                1.0,
+                c.as_mut_ptr(),
+                LEN,
+            );
+        }
+
+        for i in 0..LEN {
+            for j in 0..LEN {
+                assert_eq!(c[i + j * LEN], LEN as f32);
+            }
+        }
     }
 }
