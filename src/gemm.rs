@@ -1,6 +1,7 @@
 // https://github.com/flame/how-to-optimize-gemm
 
 use core::arch::x86_64::*;
+use std::sync;
 
 pub unsafe fn sgemm(
     _transa: bool,
@@ -17,29 +18,55 @@ pub unsafe fn sgemm(
     c: *mut f32,
     ldc: usize,
 ) {
+    #[derive(Clone, Copy)]
+    struct MatMut(*mut f32);
+
+    unsafe impl Send for MatMut {}
+
+    #[derive(Clone, Copy)]
+    struct Mat(*const f32);
+
+    unsafe impl Send for Mat {}
+
     const MC: usize = 512;
     const KC: usize = 256;
     const UNROLL: usize = 4;
 
-    let mut packed_a = vec![0.0; MC * KC];
+    let a = Mat(a);
+
+    let b = Mat(b);
+
+    let c = MatMut(c);
+
+    let mut recvs = Vec::new();
 
     for p in (0..k).step_by(KC) {
         let pb = std::cmp::min(k - p, KC);
-        for i in (0..m).step_by(MC) {
-            let ib = std::cmp::min(m - i, MC);
-            inner_kernel(
-                ib,
-                n,
-                pb,
-                a.add(i + p * lda),
-                lda,
-                b.add(p),
-                ldb,
-                c.add(i),
-                ldc,
-                packed_a.as_mut_ptr(),
-            );
-        }
+        let (tx, rx) = sync::mpsc::channel();
+        recvs.push(rx);
+        rayon::spawn(move || {
+            let mut packed_a = vec![0.0; MC * KC];
+            for i in (0..m).step_by(MC) {
+                let ib = std::cmp::min(m - i, MC);
+                inner_kernel(
+                    ib,
+                    n,
+                    pb,
+                    a.0.add(i + p * lda),
+                    lda,
+                    b.0.add(p),
+                    ldb,
+                    c.0.add(i),
+                    ldc,
+                    packed_a.as_mut_ptr(),
+                );
+            }
+            tx.send(()).unwrap();
+        });
+    }
+
+    for rx in recvs {
+        rx.recv().unwrap();
     }
 
     unsafe fn inner_kernel(

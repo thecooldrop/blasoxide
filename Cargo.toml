@@ -16,3 +16,6 @@ criterion = "0.2.11"
 [[bench]]
 name = "sgemm_bench"
 harness = false
+
+[dependencies]
+rayon = "1.0.3"
