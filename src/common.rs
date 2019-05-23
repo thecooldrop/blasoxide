@@ -15,3 +15,5 @@ pub unsafe fn hadd_ps(mut v: __m256) -> f32 {
     let v = std::mem::transmute::<__m256, [f32; 8]>(v);
     v[0] + v[4]
 }
+
+pub static SABS_MASK: u32 = 0x7FFF_FFFF;

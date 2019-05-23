@@ -211,11 +211,65 @@ pub unsafe fn sdot(n: usize, mut x: *const f32, incx: isize, mut y: *const f32, 
 }
 
 pub unsafe fn sdsdot(n: usize, b: f32, mut x: *const f32, incx: isize, mut y: *const f32, incy: isize) -> f32 {
-    let mut acc: f64 = b as f64;
+    let mut acc: f64 = f64::from(b);
     for _ in 0..n {
-        acc += *x as f64 * *y as f64;
+        acc += f64::from(*x) * f64::from(*y);
         x = x.offset(incx);
         y = y.offset(incy);
     }
     acc as f32
+}
+
+pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: isize) -> f32 {
+    if incx == 1 {
+        let mut acc = _mm256_setzero_ps();
+        for _ in 0..n/STEP {
+            unroll4!({
+                let xv = _mm256_loadu_ps(x);
+                acc = _mm256_fmadd_ps(xv, xv, acc);
+                x = x.offset(8);
+            });
+        }
+        let mut acc = common::hadd_ps(acc);
+        for _ in 0..n%STEP {
+            let xi = *x;
+            acc += xi * xi;
+            x = x.offset(1);
+        }
+        acc
+    } else {
+        let mut acc = 0.0;
+        for _ in 0..n {
+            let xi = *x;
+            acc += xi * xi;
+            x = x.offset(incx);
+        }
+        acc
+    }
+}
+
+pub unsafe fn sasum(n: usize, mut x: *const f32, incx: isize) -> f32 {
+    if incx == 1 {
+        let mut acc = _mm256_setzero_ps();
+        let mask = _mm256_broadcast_ss(&*(&common::SABS_MASK as *const u32 as *const f32));
+        for _ in 0..n/STEP {
+            unroll4!({
+                acc = _mm256_add_ps(_mm256_and_ps(mask, _mm256_loadu_ps(x)), acc);
+                x = x.offset(8);
+            });
+        }
+        let mut acc = common::hadd_ps(acc);
+        for _ in 0..n%STEP {
+            acc += (*x).abs();
+            x = x.offset(1);
+        }
+        acc
+    } else {
+        let mut acc = 0.0;
+        for _ in 0..n {
+            acc += (*x).abs();
+            x = x.offset(incx);
+        }
+        acc
+    }
 }
