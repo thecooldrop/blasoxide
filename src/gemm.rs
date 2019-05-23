@@ -22,10 +22,20 @@ pub unsafe fn sgemm(
     const UNROLL: usize = 4;
 
     for p in (0..k).step_by(KC) {
-        let pb = std::cmp::min(k-p, KC);
+        let pb = std::cmp::min(k - p, KC);
         for i in (0..m).step_by(MC) {
-            let ib = std::cmp::min(m-i, MC);
-            inner_kernel(ib, n, pb, a.add(i + p * lda), lda, b.add(p), ldb, c.add(i), ldc);
+            let ib = std::cmp::min(m - i, MC);
+            inner_kernel(
+                ib,
+                n,
+                pb,
+                a.add(i + p * lda),
+                lda,
+                b.add(p),
+                ldb,
+                c.add(i),
+                ldc,
+            );
         }
     }
 
@@ -42,7 +52,15 @@ pub unsafe fn sgemm(
     ) {
         for j in (0..n).step_by(UNROLL) {
             for i in (0..m).step_by(8) {
-                add_dot_4x8(k, a.add(i), lda, b.add(j * ldb), ldb, c.add(i + j * ldc), ldc);
+                add_dot_4x8(
+                    k,
+                    a.add(i),
+                    lda,
+                    b.add(j * ldb),
+                    ldb,
+                    c.add(i + j * ldc),
+                    ldc,
+                );
             }
         }
     }

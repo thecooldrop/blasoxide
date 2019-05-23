@@ -9,3 +9,10 @@ readme = "README.md"
 keywords = ["science", "math", "simd"]
 categories = ["science"]
 license = "MIT"
+
+[dev-dependencies]
+criterion = "0.2.11"
+
+[[bench]]
+name = "sgemm_bench"
+harness = false
