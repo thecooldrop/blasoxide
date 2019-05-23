@@ -5,3 +5,6 @@ mod common;
 
 mod level1;
 pub use level1::*;
+
+mod gemm;
+pub use gemm::*;
