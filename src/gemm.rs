@@ -82,7 +82,40 @@ pub unsafe fn sgemm(
         packed_a: *mut f32,
     ) {
         for j in (0..n).step_by(UNROLL) {
+            if n - j < UNROLL {
+                for ji in j..n {
+                    for ii in 0..m {
+                        let mut cval = 0.0;
+                        for p in 0..k {
+                            cval += *a.add(ii + p * lda) * *b.add(p + ji * ldb);
+                        }
+                        *c.add(ii + ji * ldc) += cval;
+                    }
+                }
+
+                break;
+            }
             for i in (0..m).step_by(8) {
+                if m - i < 8 {
+                    for ii in i..m {
+                        let mut cval0 = 0.0;
+                        let mut cval1 = 0.0;
+                        let mut cval2 = 0.0;
+                        let mut cval3 = 0.0;
+                        for p in 0..k {
+                            cval0 += *a.add(ii + p * lda) * *b.add(p + j * ldb);
+                            cval1 += *a.add(ii + p * lda) * *b.add(p + (j+1) * ldb);
+                            cval2 += *a.add(ii + p * lda) * *b.add(p + (j+2) * ldb);
+                            cval3 += *a.add(ii + p * lda) * *b.add(p + (j+3) * ldb);
+                        }
+                        *c.add(ii + j * ldc) += cval0;
+                        *c.add(ii + (j+1) * ldc) += cval1;
+                        *c.add(ii + (j+2) * ldc) += cval2;
+                        *c.add(ii + (j+3) * ldc) += cval3;
+                    }
+
+                    break;
+                }
                 if j == 0 {
                     pack_a(k, a.add(i), lda, packed_a.add(i * k));
                 }
@@ -164,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_sgemm() {
-        const LEN: usize = 200;
+        const LEN: usize = 201;
         let mut a = vec![1.0; LEN * LEN];
         let mut b = vec![1.0; LEN * LEN];
         let mut c = vec![0.0; LEN * LEN];
