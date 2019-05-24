@@ -7,7 +7,7 @@ use criterion::Criterion;
 use blasoxide::sgemm;
 
 fn criterion_benchmark(cri: &mut Criterion) {
-    const LEN: usize = 512;
+    const LEN: usize = 1024;
     let a = vec![1.0; LEN * LEN];
     let b = vec![1.0; LEN * LEN];
     let mut c = vec![0.0; LEN * LEN];
