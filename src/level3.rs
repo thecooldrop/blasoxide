@@ -172,12 +172,14 @@ pub unsafe fn sgemm(
     }
 
     unsafe fn add_dot_1x1(k: usize, mut a: *const f32, lda: usize, mut b: *const f32, c: *mut f32) {
+        let mut c0reg = 0.0;
         for _ in 0..k {
-            *c += *a * *b;
+            c0reg += *a * *b;
 
             a = a.add(lda);
             b = b.add(1);
         }
+        *c += c0reg;
     }
 
     unsafe fn add_dot_1x4(
