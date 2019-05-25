@@ -1,6 +1,6 @@
 #[test]
 fn test_sgemm() {
-    const LEN: usize = 512;
+    const LEN: usize = 517;
     let mut a = vec![0.5; LEN * LEN];
     let mut b = vec![0.5; LEN * LEN];
     let mut c = vec![0.0; LEN * LEN];
@@ -52,7 +52,7 @@ fn test_sgemm() {
     for i in 0..LEN {
         for j in 0..LEN {
             let (a, b) = (c[i + j * LEN], cref[i + j * LEN]);
-            assert!((a - b).abs() < 1000.0, "{}, {}", a, b);
+            assert!((a - b).abs() < 1000.0, "a!=b, a={}, b={}", a, b);
         }
     }
 }
