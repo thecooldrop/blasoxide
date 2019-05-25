@@ -14,7 +14,7 @@ license = "MIT"
 criterion = "0.2.11"
 
 [[bench]]
-name = "sgemm_bench"
+name = "level3"
 harness = false
 
 [dependencies]

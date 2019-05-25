@@ -1,6 +1,24 @@
 use core::arch::x86_64::*;
 
-use crate::common;
+macro_rules! unroll4 {
+    ($e:expr) => {{
+        $e;
+        $e;
+        $e;
+        $e;
+    }};
+}
+
+#[inline(always)]
+pub unsafe fn hadd_ps(mut v: __m256) -> f32 {
+    v = _mm256_hadd_ps(v, v);
+    v = _mm256_hadd_ps(v, v);
+    let v = std::mem::transmute::<__m256, [f32; 8]>(v);
+    v[0] + v[4]
+}
+
+pub static SABS_MASK: u32 = 0x7FFF_FFFF;
+pub static DABS_MASK: u64 = 0x7FFF_FFFF_FFFF_FFFF;
 
 const STEP: usize = 8 * 4;
 
@@ -205,7 +223,7 @@ pub unsafe fn sdot(
                 y = y.offset(8);
             });
         }
-        let mut acc = common::hadd_ps(acc);
+        let mut acc = hadd_ps(acc);
         for _ in 0..n % STEP {
             acc += *x * *y;
             x = x.offset(1);
@@ -250,7 +268,7 @@ pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: isize) -> f32 {
                 x = x.offset(8);
             });
         }
-        let mut acc = common::hadd_ps(acc);
+        let mut acc = hadd_ps(acc);
         for _ in 0..n % STEP {
             let xi = *x;
             acc += xi * xi;
@@ -271,14 +289,14 @@ pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: isize) -> f32 {
 pub unsafe fn sasum(n: usize, mut x: *const f32, incx: isize) -> f32 {
     if incx == 1 {
         let mut acc = _mm256_setzero_ps();
-        let mask = _mm256_broadcast_ss(&*(&common::SABS_MASK as *const u32 as *const f32));
+        let mask = _mm256_broadcast_ss(&*(&SABS_MASK as *const u32 as *const f32));
         for _ in 0..n / STEP {
             unroll4!({
                 acc = _mm256_add_ps(_mm256_and_ps(mask, _mm256_loadu_ps(x)), acc);
                 x = x.offset(8);
             });
         }
-        let mut acc = common::hadd_ps(acc);
+        let mut acc = hadd_ps(acc);
         for _ in 0..n % STEP {
             acc += (*x).abs();
             x = x.offset(1);

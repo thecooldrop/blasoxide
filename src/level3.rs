@@ -104,14 +104,14 @@ pub unsafe fn sgemm(
                         let mut cval3 = 0.0;
                         for p in 0..k {
                             cval0 += *a.add(ii + p * lda) * *b.add(p + j * ldb);
-                            cval1 += *a.add(ii + p * lda) * *b.add(p + (j+1) * ldb);
-                            cval2 += *a.add(ii + p * lda) * *b.add(p + (j+2) * ldb);
-                            cval3 += *a.add(ii + p * lda) * *b.add(p + (j+3) * ldb);
+                            cval1 += *a.add(ii + p * lda) * *b.add(p + (j + 1) * ldb);
+                            cval2 += *a.add(ii + p * lda) * *b.add(p + (j + 2) * ldb);
+                            cval3 += *a.add(ii + p * lda) * *b.add(p + (j + 3) * ldb);
                         }
                         *c.add(ii + j * ldc) += cval0;
-                        *c.add(ii + (j+1) * ldc) += cval1;
-                        *c.add(ii + (j+2) * ldc) += cval2;
-                        *c.add(ii + (j+3) * ldc) += cval3;
+                        *c.add(ii + (j + 1) * ldc) += cval1;
+                        *c.add(ii + (j + 2) * ldc) += cval2;
+                        *c.add(ii + (j + 3) * ldc) += cval3;
                     }
 
                     break;
