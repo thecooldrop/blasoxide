@@ -27,9 +27,9 @@ pub fn srotg(a: f32, b: f32) -> (f32, f32, f32, f32) {
     }
     let h = a.hypot(b);
     let r = if a.abs() > b.abs() {
-        h * a.signum()
+        h.copysign(a)
     } else {
-        h * b.signum()
+        h.copysign(b)
     };
     let c = a / r;
     let s = b / r;
