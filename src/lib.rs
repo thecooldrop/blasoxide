@@ -1,4 +1,5 @@
 #![allow(clippy::many_single_char_names)]
+#![allow(clippy::too_many_arguments)]
 
 mod level1;
 pub use level1::*;

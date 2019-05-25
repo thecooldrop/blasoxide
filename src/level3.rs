@@ -106,12 +106,7 @@ pub unsafe fn sgemm(
         }
     }
 
-    unsafe fn add_dot_4x8(k: usize, mut a: *const f32, b: *const f32, c: *mut f32, ldc: usize) {
-        let mut bptr0 = b;
-        let mut bptr1 = b.add(k);
-        let mut bptr2 = b.add(2 * k);
-        let mut bptr3 = b.add(3 * k);
-
+    unsafe fn add_dot_4x8(k: usize, mut a: *const f32, mut b: *const f32, c: *mut f32, ldc: usize) {
         let mut c0_reg_v = _mm256_setzero_ps();
         let mut c1_reg_v = _mm256_setzero_ps();
         let mut c2_reg_v = _mm256_setzero_ps();
@@ -119,10 +114,10 @@ pub unsafe fn sgemm(
 
         for _ in 0..k {
             let a0_reg_v = _mm256_loadu_ps(a);
-            let bp0reg = _mm256_broadcast_ss(&*bptr0);
-            let bp1reg = _mm256_broadcast_ss(&*bptr1);
-            let bp2reg = _mm256_broadcast_ss(&*bptr2);
-            let bp3reg = _mm256_broadcast_ss(&*bptr3);
+            let bp0reg = _mm256_broadcast_ss(&*b);
+            let bp1reg = _mm256_broadcast_ss(&*b.add(1));
+            let bp2reg = _mm256_broadcast_ss(&*b.add(2));
+            let bp3reg = _mm256_broadcast_ss(&*b.add(3));
 
             c0_reg_v = _mm256_fmadd_ps(a0_reg_v, bp0reg, c0_reg_v);
             c1_reg_v = _mm256_fmadd_ps(a0_reg_v, bp1reg, c1_reg_v);
@@ -130,10 +125,7 @@ pub unsafe fn sgemm(
             c3_reg_v = _mm256_fmadd_ps(a0_reg_v, bp3reg, c3_reg_v);
 
             a = a.add(8);
-            bptr0 = bptr0.add(1);
-            bptr1 = bptr1.add(1);
-            bptr2 = bptr2.add(1);
-            bptr3 = bptr3.add(1);
+            b = b.add(4);
         }
 
         let cptr0 = &mut *c;
