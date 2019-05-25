@@ -9,13 +9,3 @@ readme = "README.md"
 keywords = ["science", "math", "simd"]
 categories = ["science"]
 license = "MIT"
-
-[dev-dependencies]
-criterion = "0.2.11"
-
-[[bench]]
-name = "level3"
-harness = false
-
-[dependencies]
-rayon = "1.0.3"

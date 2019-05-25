@@ -10,15 +10,14 @@ macro_rules! unroll4 {
 }
 
 #[inline(always)]
-pub unsafe fn hadd_ps(mut v: __m256) -> f32 {
+unsafe fn hadd_ps(mut v: __m256) -> f32 {
     v = _mm256_hadd_ps(v, v);
     v = _mm256_hadd_ps(v, v);
     let v = std::mem::transmute::<__m256, [f32; 8]>(v);
     v[0] + v[4]
 }
 
-pub static SABS_MASK: u32 = 0x7FFF_FFFF;
-pub static DABS_MASK: u64 = 0x7FFF_FFFF_FFFF_FFFF;
+static SABS_MASK: u32 = 0x7FFF_FFFF;
 
 const STEP: usize = 8 * 4;
 
@@ -274,7 +273,7 @@ pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: isize) -> f32 {
             acc += xi * xi;
             x = x.offset(1);
         }
-        acc
+        acc.sqrt()
     } else {
         let mut acc = 0.0;
         for _ in 0..n {
@@ -282,7 +281,7 @@ pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: isize) -> f32 {
             acc += xi * xi;
             x = x.offset(incx);
         }
-        acc
+        acc.sqrt()
     }
 }
 
@@ -310,4 +309,18 @@ pub unsafe fn sasum(n: usize, mut x: *const f32, incx: isize) -> f32 {
         }
         acc
     }
+}
+
+pub unsafe fn isamax(n: usize, mut x: *const f32, incx: isize) -> usize {
+    let mut max = 0.0;
+    let mut imax = 0;
+    for i in 0..n {
+        let xi = (*x).abs();
+        if xi > max {
+            max = xi;
+            imax = i;
+        }
+        x = x.offset(incx);
+    }
+    imax
 }
