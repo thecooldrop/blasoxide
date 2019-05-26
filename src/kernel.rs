@@ -117,3 +117,43 @@ pub unsafe fn sadot_1x1(k: usize, a: *const f32, lda: usize, b: *const f32, c: *
 
     *c = creg;
 }
+
+pub unsafe fn spacka(k: usize, a: *const f32, lda: usize, pa: *mut f32) {
+    let mut aptr = a;
+    let mut paptr = pa;
+
+    for _ in 0..k {
+        _mm256_storeu_ps(paptr, _mm256_loadu_ps(aptr));
+
+        aptr = aptr.add(lda);
+        paptr = paptr.add(8);
+    }
+}
+
+pub unsafe fn spackb(k: usize, b: *const f32, ldb: usize, pb: *mut f32) {
+    let mut bptr0 = b;
+    let mut bptr1 = b.add(ldb);
+    let mut bptr2 = b.add(ldb * 2);
+    let mut bptr3 = b.add(ldb * 3);
+
+    let mut pbptr0 = pb;
+    let mut pbptr1 = pb.add(k);
+    let mut pbptr2 = pb.add(k * 2);
+    let mut pbptr3 = pb.add(k * 3);
+
+    for _ in 0..k {
+        *pbptr0 = *bptr0;
+        *pbptr1 = *bptr1;
+        *pbptr2 = *bptr2;
+        *pbptr3 = *bptr3;
+
+        bptr0 = bptr0.add(1);
+        bptr1 = bptr1.add(1);
+        bptr2 = bptr2.add(1);
+        bptr3 = bptr3.add(1);
+        pbptr0 = pbptr0.add(1);
+        pbptr1 = pbptr1.add(1);
+        pbptr2 = pbptr2.add(1);
+        pbptr3 = pbptr3.add(1);
+    }
+}
