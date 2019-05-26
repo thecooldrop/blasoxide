@@ -72,12 +72,10 @@ pub unsafe fn sgemm(
                     pack_a(k, a.add(i), lda, packed_a.add(i * k));
                 }
 
-                kernel::sadot_8x4(
+                kernel::sadot_8x4_packed(
                     k,
                     packed_a.add(i * k),
-                    8,
                     packed_b.add(j * k),
-                    1,
                     c.add(i + j * ldc),
                     ldc,
                 );

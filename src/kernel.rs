@@ -1,18 +1,7 @@
 use core::arch::x86_64::*;
 
-pub unsafe fn sadot_8x4(
-    k: usize,
-    a: *const f32,
-    lda: usize,
-    b: *const f32,
-    ldb: usize,
-    c: *mut f32,
-    ldc: usize,
-) {
-    let mut bptr0 = b;
-    let mut bptr1 = b.add(ldb);
-    let mut bptr2 = b.add(ldb * 2);
-    let mut bptr3 = b.add(ldb * 3);
+pub unsafe fn sadot_8x4_packed(k: usize, a: *const f32, b: *const f32, c: *mut f32, ldc: usize) {
+    let mut bptr = b;
 
     let mut creg0 = _mm256_setzero_ps();
     let mut creg1 = _mm256_setzero_ps();
@@ -24,16 +13,13 @@ pub unsafe fn sadot_8x4(
     for _ in 0..k {
         let areg = _mm256_loadu_ps(aptr);
 
-        creg0 = _mm256_fmadd_ps(areg, _mm256_broadcast_ss(&*bptr0), creg0);
-        creg1 = _mm256_fmadd_ps(areg, _mm256_broadcast_ss(&*bptr1), creg1);
-        creg2 = _mm256_fmadd_ps(areg, _mm256_broadcast_ss(&*bptr2), creg2);
-        creg3 = _mm256_fmadd_ps(areg, _mm256_broadcast_ss(&*bptr3), creg3);
+        creg0 = _mm256_fmadd_ps(areg, _mm256_broadcast_ss(&*bptr), creg0);
+        creg1 = _mm256_fmadd_ps(areg, _mm256_broadcast_ss(&*bptr.add(1)), creg1);
+        creg2 = _mm256_fmadd_ps(areg, _mm256_broadcast_ss(&*bptr.add(2)), creg2);
+        creg3 = _mm256_fmadd_ps(areg, _mm256_broadcast_ss(&*bptr.add(3)), creg3);
 
-        aptr = aptr.add(lda);
-        bptr0 = bptr0.add(1);
-        bptr1 = bptr1.add(1);
-        bptr2 = bptr2.add(1);
-        bptr3 = bptr3.add(1);
+        aptr = aptr.add(8);
+        bptr = bptr.add(4);
     }
 
     _mm256_storeu_ps(c, creg0);
@@ -136,25 +122,20 @@ pub unsafe fn spackb(k: usize, b: *const f32, ldb: usize, pb: *mut f32) {
     let mut bptr2 = b.add(ldb * 2);
     let mut bptr3 = b.add(ldb * 3);
 
-    let mut pbptr0 = pb;
-    let mut pbptr1 = pb.add(k);
-    let mut pbptr2 = pb.add(k * 2);
-    let mut pbptr3 = pb.add(k * 3);
+    let mut pbptr = pb;
 
     for _ in 0..k {
-        *pbptr0 = *bptr0;
-        *pbptr1 = *bptr1;
-        *pbptr2 = *bptr2;
-        *pbptr3 = *bptr3;
+        *pbptr = *bptr0;
+        *pbptr.add(1) = *bptr1;
+        *pbptr.add(2) = *bptr2;
+        *pbptr.add(3) = *bptr3;
 
         bptr0 = bptr0.add(1);
         bptr1 = bptr1.add(1);
         bptr2 = bptr2.add(1);
         bptr3 = bptr3.add(1);
-        pbptr0 = pbptr0.add(1);
-        pbptr1 = pbptr1.add(1);
-        pbptr2 = pbptr2.add(1);
-        pbptr3 = pbptr3.add(1);
+
+        pbptr = pbptr.add(4);
     }
 }
 
