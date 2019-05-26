@@ -27,28 +27,16 @@ pub unsafe fn sgemm(
     let a = Mat(a);
     let b = Mat(b);
 
-    let mut rxs = Vec::new();
+    let (tx, rx) = mpsc::channel();
 
     for p in (0..k).step_by(KC) {
         let pb = std::cmp::min(k - p, KC);
-
-        let (tx, rx) = mpsc::channel();
-
-        rxs.push(rx);
-
-        let mut inner_rxs = Vec::new();
-
-        let mut tgts = Vec::new();
-
+        let tx = tx.clone();
         rayon::spawn(move || {
             for i in (0..m).step_by(MC) {
                 let ib = std::cmp::min(m - i, MC);
-
-                let (inner_tx, inner_rx) = mpsc::channel();
-
-                inner_rxs.push(inner_rx);
-
-                rayon::spawn(move || {
+                let tx = tx.clone();
+                rayon::spawn(move || {                    
                     let mut tgt_c = vec![0.0; MC * n];
 
                     inner_kernel(
@@ -63,22 +51,16 @@ pub unsafe fn sgemm(
                         ib,
                     );
 
-                    inner_tx.send((ib, i, tgt_c)).unwrap();
+                    tx.send((ib, i, tgt_c)).unwrap();
                 });
             }
-
-            for inner_rx in inner_rxs {
-                tgts.push(inner_rx.recv().unwrap());
-            }
-
-            tx.send(tgts).unwrap();
         });
     }
 
-    for rx in rxs {
-        for (ib, i, tgt_c) in rx.recv().unwrap() {
-            kernel::sunpackc(ib, n, alpha, tgt_c.as_ptr(), beta, c.add(i), ldc);
-        }
+    std::mem::drop(tx);
+
+    for (ib, i, tgt_c) in rx.iter() {
+        kernel::sunpackc(ib, n, alpha, tgt_c.as_ptr(), beta, c.add(i), ldc);
     }
 
     unsafe fn inner_kernel(
