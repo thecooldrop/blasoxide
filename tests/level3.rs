@@ -1,6 +1,6 @@
 #[test]
 fn test_sgemm() {
-    const LEN: usize = 517;
+    const LEN: usize = 256;
     let mut a = vec![0.5; LEN * LEN];
     let mut b = vec![0.5; LEN * LEN];
     let mut c = vec![0.0; LEN * LEN];

@@ -17,10 +17,9 @@ pub unsafe fn sgemm(
 ) {
     const MC: usize = 512;
     const KC: usize = 256;
-    const NB: usize = 1000;
 
     let mut packed_a = vec![0.0; MC * KC];
-    let mut packed_b = vec![0.0; KC * NB];
+    let mut packed_b = vec![0.0; KC * n];
 
     for p in (0..k).step_by(KC) {
         let pb = std::cmp::min(k - p, KC);
