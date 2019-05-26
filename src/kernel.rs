@@ -157,3 +157,24 @@ pub unsafe fn spackb(k: usize, b: *const f32, ldb: usize, pb: *mut f32) {
         pbptr3 = pbptr3.add(1);
     }
 }
+
+pub unsafe fn sunpackc(
+    m: usize,
+    n: usize,
+    alpha: f32,
+    pc: *const f32,
+    beta: f32,
+    c: *mut f32,
+    ldc: usize,
+) {
+    let mut pcptr = pc;
+
+    for j in 0..n {
+        for i in 0..m {
+            let cptr = c.add(i + j * ldc);
+            *cptr = alpha * *pcptr + beta * *cptr;
+
+            pcptr = pcptr.add(1);
+        }
+    }
+}
