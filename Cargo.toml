@@ -9,3 +9,6 @@ readme = "README.md"
 keywords = ["science", "math", "simd"]
 categories = ["science"]
 license = "MIT"
+
+[dependencies]
+rayon = "1.0.3"
