@@ -80,40 +80,48 @@ pub unsafe fn sgemm(
         let packed_a = MatMut(packed_a);
         let packed_b = MatMut(packed_b);
 
-        (0..n_main).step_by(4).collect::<Vec<_>>().par_iter().for_each(move |&j| {
-            if first_time {
-                pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
-            }
-            if j == 0 {
-                for i in (0..m_main).step_by(8) {
-                    pack_a(k, a.0.add(i), lda, packed_a.0.add(i * k));
+        (0..n_main)
+            .step_by(4)
+            .collect::<Vec<_>>()
+            .par_iter()
+            .for_each(move |&j| {
+                if first_time {
+                    pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
                 }
-            }
-        });
+                if j == 0 {
+                    for i in (0..m_main).step_by(8) {
+                        pack_a(k, a.0.add(i), lda, packed_a.0.add(i * k));
+                    }
+                }
+            });
 
-        (0..n_main).step_by(4).collect::<Vec<_>>().par_iter().for_each(move |&j| {
-            for i in (0..m_main).step_by(8) {
-                add_dot_8x4_packed(
-                    k,
-                    packed_a.0.add(i * k),
-                    packed_b.0.add(j * k),
-                    c.0.add(i + j * ldc),
-                    ldc,
-                );
-            }
+        (0..n_main)
+            .step_by(4)
+            .collect::<Vec<_>>()
+            .par_iter()
+            .for_each(move |&j| {
+                for i in (0..m_main).step_by(8) {
+                    add_dot_8x4_packed(
+                        k,
+                        packed_a.0.add(i * k),
+                        packed_b.0.add(j * k),
+                        c.0.add(i + j * ldc),
+                        ldc,
+                    );
+                }
 
-            for i in m_main..m {
-                add_dot_1x4(
-                    k,
-                    a.0.add(i),
-                    lda,
-                    b.0.add(j * ldb),
-                    ldb,
-                    c.0.add(i + j * ldc),
-                    ldc,
-                );
-            }
-        });
+                for i in m_main..m {
+                    add_dot_1x4(
+                        k,
+                        a.0.add(i),
+                        lda,
+                        b.0.add(j * ldb),
+                        ldb,
+                        c.0.add(i + j * ldc),
+                        ldc,
+                    );
+                }
+            });
 
         for j in n_main..n {
             for i in (0..m_main).step_by(8) {
