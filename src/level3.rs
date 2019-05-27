@@ -19,7 +19,7 @@ pub unsafe fn sgemm(
     m: usize,
     n: usize,
     k: usize,
-    _alpha: f32,
+    alpha: f32,
     a: *const f32,
     lda: usize,
     b: *const f32,
@@ -42,6 +42,7 @@ pub unsafe fn sgemm(
                 ib,
                 n,
                 pb,
+                alpha,
                 a.add(i + p * lda),
                 lda,
                 b.add(p),
@@ -59,6 +60,7 @@ pub unsafe fn sgemm(
         m: usize,
         n: usize,
         k: usize,
+        alpha: f32,
         a: *const f32,
         lda: usize,
         b: *const f32,
@@ -90,7 +92,7 @@ pub unsafe fn sgemm(
                 }
                 if j == 0 {
                     for i in (0..m_main).step_by(8) {
-                        pack_a(k, a.0.add(i), lda, packed_a.0.add(i * k));
+                        pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
                     }
                 }
             });
@@ -153,12 +155,23 @@ pub unsafe fn sgemm(
         }
     }
 
-    unsafe fn pack_a(k: usize, mut a: *const f32, lda: usize, mut packed_a: *mut f32) {
-        for _ in 0..k {
-            _mm256_storeu_ps(packed_a, _mm256_loadu_ps(a));
+    unsafe fn pack_a(k: usize, alpha: f32, mut a: *const f32, lda: usize, mut packed_a: *mut f32) {
+        if alpha != 1.0 {
+            let alphav = _mm256_broadcast_ss(&alpha);
 
-            a = a.add(lda);
-            packed_a = packed_a.add(8);
+            for _ in 0..k {
+                _mm256_storeu_ps(packed_a, _mm256_mul_ps(alphav, _mm256_loadu_ps(a)));
+
+                a = a.add(lda);
+                packed_a = packed_a.add(8);
+            }
+        } else {
+            for _ in 0..k {
+                _mm256_storeu_ps(packed_a, _mm256_loadu_ps(a));
+
+                a = a.add(lda);
+                packed_a = packed_a.add(8);
+            }
         }
     }
 
