@@ -24,7 +24,7 @@ pub unsafe fn sgemm(
     lda: usize,
     b: *const f32,
     ldb: usize,
-    _beta: f32,
+    beta: f32,
     c: *mut f32,
     ldc: usize,
 ) {
@@ -33,6 +33,8 @@ pub unsafe fn sgemm(
 
     let mut packed_a = vec![0.0; MC * KC];
     let mut packed_b = vec![0.0; KC * n];
+
+    let mut beta_scale = beta;
 
     for p in (0..k).step_by(KC) {
         let pb = std::cmp::min(k - p, KC);
@@ -47,6 +49,7 @@ pub unsafe fn sgemm(
                 lda,
                 b.add(p),
                 ldb,
+                beta_scale,
                 c.add(i),
                 ldc,
                 packed_a.as_mut_ptr(),
@@ -54,6 +57,7 @@ pub unsafe fn sgemm(
                 i == 0,
             );
         }
+        beta_scale = 1.0;
     }
 
     unsafe fn inner_kernel(
@@ -65,6 +69,7 @@ pub unsafe fn sgemm(
         lda: usize,
         b: *const f32,
         ldb: usize,
+        beta: f32,
         c: *mut f32,
         ldc: usize,
         packed_a: *mut f32,
@@ -107,6 +112,7 @@ pub unsafe fn sgemm(
                         k,
                         packed_a.0.add(i * k),
                         packed_b.0.add(j * k),
+                        beta,
                         c.0.add(i + j * ldc),
                         ldc,
                     );
@@ -120,6 +126,7 @@ pub unsafe fn sgemm(
                         lda,
                         b.0.add(j * ldb),
                         ldb,
+                        beta,
                         c.0.add(i + j * ldc),
                         ldc,
                     );
@@ -128,10 +135,26 @@ pub unsafe fn sgemm(
 
         for j in n_main..n {
             for i in (0..m_main).step_by(8) {
-                add_dot_8x1(k, alpha, a.0.add(i), lda, b.0.add(j * ldb), c.0.add(i + j * ldc));
+                add_dot_8x1(
+                    k,
+                    alpha,
+                    a.0.add(i),
+                    lda,
+                    b.0.add(j * ldb),
+                    beta,
+                    c.0.add(i + j * ldc),
+                );
             }
             for i in m_main..m {
-                add_dot_1x1(k, alpha, a.0.add(i), lda, b.0.add(j * ldb), c.0.add(i + j * ldc));
+                add_dot_1x1(
+                    k,
+                    alpha,
+                    a.0.add(i),
+                    lda,
+                    b.0.add(j * ldb),
+                    beta,
+                    c.0.add(i + j * ldc),
+                );
             }
         }
     }
@@ -171,13 +194,20 @@ pub unsafe fn sgemm(
         k: usize,
         mut a: *const f32,
         mut b: *const f32,
+        beta: f32,
         c: *mut f32,
         ldc: usize,
     ) {
-        let mut c0_reg_v = _mm256_setzero_ps();
-        let mut c1_reg_v = _mm256_setzero_ps();
-        let mut c2_reg_v = _mm256_setzero_ps();
-        let mut c3_reg_v = _mm256_setzero_ps();
+        let cptr0 = &mut *c;
+        let cptr1 = &mut *c.add(ldc);
+        let cptr2 = &mut *c.add(2 * ldc);
+        let cptr3 = &mut *c.add(3 * ldc);
+
+        let betav = _mm256_broadcast_ss(&beta);
+        let mut c0_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr0));
+        let mut c1_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr1));
+        let mut c2_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr2));
+        let mut c3_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr3));
 
         for _ in 0..k {
             let a0_reg_v = _mm256_loadu_ps(a);
@@ -195,26 +225,29 @@ pub unsafe fn sgemm(
             b = b.add(4);
         }
 
-        let cptr0 = &mut *c;
-        let cptr1 = &mut *c.add(ldc);
-        let cptr2 = &mut *c.add(2 * ldc);
-        let cptr3 = &mut *c.add(3 * ldc);
-
-        _mm256_storeu_ps(cptr0, _mm256_add_ps(_mm256_loadu_ps(cptr0), c0_reg_v));
-        _mm256_storeu_ps(cptr1, _mm256_add_ps(_mm256_loadu_ps(cptr1), c1_reg_v));
-        _mm256_storeu_ps(cptr2, _mm256_add_ps(_mm256_loadu_ps(cptr2), c2_reg_v));
-        _mm256_storeu_ps(cptr3, _mm256_add_ps(_mm256_loadu_ps(cptr3), c3_reg_v));
+        _mm256_storeu_ps(cptr0, c0_reg_v);
+        _mm256_storeu_ps(cptr1, c1_reg_v);
+        _mm256_storeu_ps(cptr2, c2_reg_v);
+        _mm256_storeu_ps(cptr3, c3_reg_v);
     }
 
-    unsafe fn add_dot_1x1(k: usize, alpha: f32, mut a: *const f32, lda: usize, mut b: *const f32, c: *mut f32) {
-        let mut c0reg = 0.0;
+    unsafe fn add_dot_1x1(
+        k: usize,
+        alpha: f32,
+        mut a: *const f32,
+        lda: usize,
+        mut b: *const f32,
+        beta: f32,
+        c: *mut f32,
+    ) {
+        let mut c0reg = *c * beta;
         for _ in 0..k {
             c0reg += *a * *b * alpha;
 
             a = a.add(lda);
             b = b.add(1);
         }
-        *c += c0reg;
+        *c = c0reg;
     }
 
     unsafe fn add_dot_1x4(
@@ -224,6 +257,7 @@ pub unsafe fn sgemm(
         lda: usize,
         b: *const f32,
         ldb: usize,
+        beta: f32,
         c: *mut f32,
         ldc: usize,
     ) {
@@ -232,10 +266,15 @@ pub unsafe fn sgemm(
         let mut bptr2 = b.add(ldb * 2);
         let mut bptr3 = b.add(ldb * 3);
 
-        let mut c0_reg = 0.0;
-        let mut c1_reg = 0.0;
-        let mut c2_reg = 0.0;
-        let mut c3_reg = 0.0;
+        let cptr0 = c;
+        let cptr1 = c.add(ldc);
+        let cptr2 = c.add(2 * ldc);
+        let cptr3 = c.add(3 * ldc);
+
+        let mut c0_reg = *cptr0 * beta;
+        let mut c1_reg = *cptr1 * beta;
+        let mut c2_reg = *cptr2 * beta;
+        let mut c3_reg = *cptr3 * beta;
 
         for _ in 0..k {
             let a0_reg = *a * alpha;
@@ -256,14 +295,25 @@ pub unsafe fn sgemm(
             bptr3 = bptr3.add(1);
         }
 
-        *c += c0_reg;
-        *c.add(ldc) += c1_reg;
-        *c.add(2 * ldc) += c2_reg;
-        *c.add(3 * ldc) += c3_reg;
+        *cptr0 = c0_reg;
+        *cptr1 = c1_reg;
+        *cptr2 = c2_reg;
+        *cptr3 = c3_reg;
     }
 
-    unsafe fn add_dot_8x1(k: usize, alpha: f32, mut a: *const f32, lda: usize, mut b: *const f32, c: *mut f32) {
-        let mut c0_reg_v = _mm256_setzero_ps();
+    unsafe fn add_dot_8x1(
+        k: usize,
+        alpha: f32,
+        mut a: *const f32,
+        lda: usize,
+        mut b: *const f32,
+        beta: f32,
+        c: *mut f32,
+    ) {
+        let cptr0 = &mut *c;
+
+        let betav = _mm256_broadcast_ss(&beta);
+        let mut c0_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr0));
         let alphav = _mm256_broadcast_ss(&alpha);
 
         for _ in 0..k {
@@ -276,8 +326,6 @@ pub unsafe fn sgemm(
             b = b.add(1);
         }
 
-        let cptr0 = &mut *c;
-
-        _mm256_storeu_ps(cptr0, _mm256_add_ps(_mm256_loadu_ps(cptr0), c0_reg_v));
+        _mm256_storeu_ps(cptr0, c0_reg_v);
     }
 }

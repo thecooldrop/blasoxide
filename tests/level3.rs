@@ -25,7 +25,7 @@ fn test_sgemm() {
             LEN,
             b.as_ptr(),
             LEN,
-            1.0,
+            0.5,
             c.as_mut_ptr(),
             LEN,
         );
@@ -43,7 +43,7 @@ fn test_sgemm() {
             LEN,
             b.as_ptr(),
             LEN,
-            1.0,
+            0.5,
             cref.as_mut_ptr(),
             LEN,
         );
@@ -68,13 +68,13 @@ unsafe fn sgemm_ref(
     lda: usize,
     b: *const f32,
     ldb: usize,
-    _beta: f32,
+    beta: f32,
     c: *mut f32,
     ldc: usize,
 ) {
     for j in 0..n {
         for i in 0..m {
-            let mut ci = *c.add(i + j * ldc);
+            let mut ci = *c.add(i + j * ldc) * beta;
             for p in 0..k {
                 ci += *a.add(i + p * lda) * *b.add(p + j * ldb) * alpha;
             }
