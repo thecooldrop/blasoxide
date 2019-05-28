@@ -15,27 +15,24 @@ extern crate test;
 use test::Bencher;
 
 #[bench]
-fn bench_sgemm_1000(bencher: &mut Bencher) {
+fn bench_sgemv_1000(bencher: &mut Bencher) {
     const LEN: usize = 1000;
-    let a = vec![1.0; LEN * LEN];
-    let b = vec![1.0; LEN * LEN];
-    let mut c = vec![0.0; LEN * LEN];
-
+    let a = vec![0.5; LEN * LEN];
+    let x = vec![0.5; LEN];
+    let mut y = vec![0.0; LEN];
     bencher.iter(|| unsafe {
-        blasoxide::sgemm(
+        blasoxide::sgemv(
             false,
-            false,
             LEN,
-            LEN,
-            LEN,
-            2.0,
-            a.as_ptr(),
-            LEN,
-            b.as_ptr(),
             LEN,
             1.0,
-            c.as_mut_ptr(),
+            a.as_ptr(),
             LEN,
+            x.as_ptr(),
+            1,
+            1.0,
+            y.as_mut_ptr(),
+            1,
         );
     });
 }

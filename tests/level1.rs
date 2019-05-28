@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 #[test]
 fn test_srotg() {
     assert_eq!(blasoxide::srotg(0.0, 0.0), (0.0, 0.0, 1.0, 0.0));

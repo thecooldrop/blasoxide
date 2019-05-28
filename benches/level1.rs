@@ -1,3 +1,4 @@
+#![deny(warnings)]
 #![feature(test)]
 
 #[cfg(not(all(
