@@ -1,17 +1,6 @@
+use crate::{SSend, SSendMut};
 use core::arch::x86_64::*;
 use rayon::prelude::*;
-
-#[derive(Clone, Copy)]
-struct Mat(*const f32);
-
-unsafe impl Send for Mat {}
-unsafe impl Sync for Mat {}
-
-#[derive(Clone, Copy)]
-struct MatMut(*mut f32);
-
-unsafe impl Send for MatMut {}
-unsafe impl Sync for MatMut {}
 
 pub unsafe fn sgemm(
     _transa: bool,
@@ -85,11 +74,11 @@ pub unsafe fn sgemm(
         let m_left = m % 8;
         let m_main = m - m_left;
 
-        let a = Mat(a);
-        let b = Mat(b);
-        let c = MatMut(c);
-        let packed_a = MatMut(packed_a);
-        let packed_b = MatMut(packed_b);
+        let a = SSend(a);
+        let b = SSend(b);
+        let c = SSendMut(c);
+        let packed_a = SSendMut(packed_a);
+        let packed_b = SSendMut(packed_b);
 
         (0..n_main)
             .step_by(4)

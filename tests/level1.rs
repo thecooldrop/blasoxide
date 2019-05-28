@@ -33,9 +33,9 @@ fn test_srot_with_stride() {
         blasoxide::srot(
             LEN / STRIDE,
             x.as_mut_ptr(),
-            STRIDE as isize,
+            STRIDE,
             y.as_mut_ptr(),
-            STRIDE as isize,
+            STRIDE,
             2.0,
             1.0,
         );
@@ -78,13 +78,7 @@ fn test_sswap_with_stride() {
     let mut y = vec![-3.0; LEN];
 
     unsafe {
-        blasoxide::sswap(
-            LEN / STRIDE,
-            x.as_mut_ptr(),
-            STRIDE as isize,
-            y.as_mut_ptr(),
-            STRIDE as isize,
-        );
+        blasoxide::sswap(LEN / STRIDE, x.as_mut_ptr(), STRIDE, y.as_mut_ptr(), STRIDE);
     }
 
     for i in 0..LEN {
@@ -121,7 +115,7 @@ fn test_sscal_with_stride() {
     let mut x = vec![-3.0; LEN];
 
     unsafe {
-        blasoxide::sscal(LEN / STRIDE, 5.0, x.as_mut_ptr(), STRIDE as isize);
+        blasoxide::sscal(LEN / STRIDE, 5.0, x.as_mut_ptr(), STRIDE);
     }
 
     for i in 0..LEN {
@@ -158,13 +152,7 @@ fn test_scopy_with_stride() {
     let mut y = vec![-3.0; LEN];
 
     unsafe {
-        blasoxide::scopy(
-            LEN / STRIDE,
-            x.as_ptr(),
-            STRIDE as isize,
-            y.as_mut_ptr(),
-            STRIDE as isize,
-        );
+        blasoxide::scopy(LEN / STRIDE, x.as_ptr(), STRIDE, y.as_mut_ptr(), STRIDE);
     }
 
     for i in 0..LEN - STRIDE {
@@ -205,9 +193,9 @@ fn test_saxpy_with_stride() {
             LEN / STRIDE,
             5.0,
             x.as_ptr(),
-            STRIDE as isize,
+            STRIDE,
             y.as_mut_ptr(),
-            STRIDE as isize,
+            STRIDE,
         );
     }
 
@@ -240,15 +228,7 @@ fn test_sdot_with_stride() {
     let x = vec![1.0; LEN];
     let y = vec![-3.0; LEN];
 
-    let res = unsafe {
-        blasoxide::sdot(
-            LEN / STRIDE,
-            x.as_ptr(),
-            STRIDE as isize,
-            y.as_ptr(),
-            STRIDE as isize,
-        )
-    };
+    let res = unsafe { blasoxide::sdot(LEN / STRIDE, x.as_ptr(), STRIDE, y.as_ptr(), STRIDE) };
 
     assert_eq!(res, (LEN / STRIDE) as f32 * 1.0 * -3.0);
 }
@@ -273,16 +253,8 @@ fn test_sdsdot_with_stride() {
     let x = vec![1.0; LEN];
     let y = vec![-3.0; LEN];
 
-    let res = unsafe {
-        blasoxide::sdsdot(
-            LEN / STRIDE,
-            7.0,
-            x.as_ptr(),
-            STRIDE as isize,
-            y.as_ptr(),
-            STRIDE as isize,
-        )
-    };
+    let res =
+        unsafe { blasoxide::sdsdot(LEN / STRIDE, 7.0, x.as_ptr(), STRIDE, y.as_ptr(), STRIDE) };
 
     assert_eq!(res, (LEN / STRIDE) as f32 * 1.0 * -3.0 + 7.0);
 }
@@ -305,7 +277,7 @@ fn test_snrm2_with_stride() {
 
     let x = vec![2.0; LEN];
 
-    let res = unsafe { blasoxide::snrm2(LEN / STRIDE, x.as_ptr(), STRIDE as isize) };
+    let res = unsafe { blasoxide::snrm2(LEN / STRIDE, x.as_ptr(), STRIDE) };
 
     assert_eq!(res, 10.0);
 }
@@ -328,7 +300,7 @@ fn test_sasum_with_stride() {
 
     let x = vec![-1.5; LEN];
 
-    let res = unsafe { blasoxide::sasum(LEN / STRIDE, x.as_ptr(), STRIDE as isize) };
+    let res = unsafe { blasoxide::sasum(LEN / STRIDE, x.as_ptr(), STRIDE) };
 
     assert_eq!(res, LEN as f32 * 1.5 / STRIDE as f32);
 }
@@ -366,7 +338,7 @@ fn test_isamax_with_stride() {
     x[4] = 99.0;
     x[97] = 99.0;
 
-    let res = unsafe { blasoxide::isamax(LEN / STRIDE, x.as_ptr(), STRIDE as isize) };
+    let res = unsafe { blasoxide::isamax(LEN / STRIDE, x.as_ptr(), STRIDE) };
 
     assert_eq!(res, 6);
 }
