@@ -46,9 +46,9 @@ pub fn srotg(a: f32, b: f32) -> (f32, f32, f32, f32) {
 pub unsafe fn srot(
     n: usize,
     mut x: *mut f32,
-    incx: isize,
+    incx: usize,
     mut y: *mut f32,
-    incy: isize,
+    incy: usize,
     c: f32,
     s: f32,
 ) {
@@ -64,8 +64,8 @@ pub unsafe fn srot(
                 _mm256_storeu_ps(x, _mm256_fmadd_ps(cv, xv, _mm256_mul_ps(sv, yv)));
                 _mm256_storeu_ps(y, _mm256_fmsub_ps(cv, yv, _mm256_mul_ps(sv, xv)));
 
-                x = x.offset(8);
-                y = y.offset(8);
+                x = x.add(8);
+                y = y.add(8);
             });
         }
         for _ in 0..n % STEP {
@@ -75,8 +75,8 @@ pub unsafe fn srot(
             *x = c * xi + s * yi;
             *y = c * yi - s * xi;
 
-            x = x.offset(1);
-            y = y.offset(1);
+            x = x.add(1);
+            y = y.add(1);
         }
     } else {
         for _ in 0..n {
@@ -86,13 +86,13 @@ pub unsafe fn srot(
             *x = c * xi + s * yi;
             *y = c * yi - s * xi;
 
-            x = x.offset(incx);
-            y = y.offset(incy);
+            x = x.add(incx);
+            y = y.add(incy);
         }
     }
 }
 
-pub unsafe fn sswap(n: usize, mut x: *mut f32, incx: isize, mut y: *mut f32, incy: isize) {
+pub unsafe fn sswap(n: usize, mut x: *mut f32, incx: usize, mut y: *mut f32, incy: usize) {
     if incx == 1 && incy == 1 {
         for _ in 0..n / STEP {
             unroll4!({
@@ -100,8 +100,8 @@ pub unsafe fn sswap(n: usize, mut x: *mut f32, incx: isize, mut y: *mut f32, inc
                 let yv = _mm256_loadu_ps(y);
                 _mm256_storeu_ps(x, yv);
                 _mm256_storeu_ps(y, xv);
-                x = x.offset(8);
-                y = y.offset(8);
+                x = x.add(8);
+                y = y.add(8);
             });
         }
         for _ in 0..n % STEP {
@@ -111,8 +111,8 @@ pub unsafe fn sswap(n: usize, mut x: *mut f32, incx: isize, mut y: *mut f32, inc
             *x = yi;
             *y = xi;
 
-            x = x.offset(1);
-            y = y.offset(1);
+            x = x.add(1);
+            y = y.add(1);
         }
     } else {
         for _ in 0..n {
@@ -122,52 +122,52 @@ pub unsafe fn sswap(n: usize, mut x: *mut f32, incx: isize, mut y: *mut f32, inc
             *x = yi;
             *y = xi;
 
-            x = x.offset(incx);
-            y = y.offset(incy);
+            x = x.add(incx);
+            y = y.add(incy);
         }
     }
 }
 
-pub unsafe fn sscal(n: usize, a: f32, mut x: *mut f32, incx: isize) {
+pub unsafe fn sscal(n: usize, a: f32, mut x: *mut f32, incx: usize) {
     if incx == 1 {
         let av = _mm256_broadcast_ss(&a);
         for _ in 0..n / STEP {
             unroll4!({
                 _mm256_storeu_ps(x, _mm256_mul_ps(av, _mm256_loadu_ps(x)));
-                x = x.offset(8);
+                x = x.add(8);
             });
         }
         for _ in 0..n % STEP {
             *x *= a;
-            x = x.offset(1);
+            x = x.add(1);
         }
     } else {
         for _ in 0..n {
             *x *= a;
-            x = x.offset(incx);
+            x = x.add(incx);
         }
     }
 }
 
-pub unsafe fn scopy(n: usize, mut x: *const f32, incx: isize, mut y: *mut f32, incy: isize) {
+pub unsafe fn scopy(n: usize, mut x: *const f32, incx: usize, mut y: *mut f32, incy: usize) {
     if incx == 1 && incy == 1 {
         for _ in 0..n / STEP {
             unroll4!({
                 _mm256_storeu_ps(y, _mm256_loadu_ps(x));
-                x = x.offset(8);
-                y = y.offset(8);
+                x = x.add(8);
+                y = y.add(8);
             });
         }
         for _ in 0..n % STEP {
             *y = *x;
-            x = x.offset(1);
-            y = y.offset(1);
+            x = x.add(1);
+            y = y.add(1);
         }
     } else {
         for _ in 0..n {
             *y = *x;
-            x = x.offset(incx);
-            y = y.offset(incy);
+            x = x.add(incx);
+            y = y.add(incy);
         }
     }
 }
@@ -176,9 +176,9 @@ pub unsafe fn saxpy(
     n: usize,
     a: f32,
     mut x: *const f32,
-    incx: isize,
+    incx: usize,
     mut y: *mut f32,
-    incy: isize,
+    incy: usize,
 ) {
     if incx == 1 && incy == 1 {
         let av = _mm256_broadcast_ss(&a);
@@ -188,20 +188,20 @@ pub unsafe fn saxpy(
                     y,
                     _mm256_fmadd_ps(av, _mm256_loadu_ps(x), _mm256_loadu_ps(y)),
                 );
-                x = x.offset(8);
-                y = y.offset(8);
+                x = x.add(8);
+                y = y.add(8);
             });
         }
         for _ in 0..n % STEP {
             *y += a * *x;
-            x = x.offset(1);
-            y = y.offset(1);
+            x = x.add(1);
+            y = y.add(1);
         }
     } else {
         for _ in 0..n {
             *y += a * *x;
-            x = x.offset(incx);
-            y = y.offset(incy);
+            x = x.add(incx);
+            y = y.add(incy);
         }
     }
 }
@@ -209,32 +209,32 @@ pub unsafe fn saxpy(
 pub unsafe fn sdot(
     n: usize,
     mut x: *const f32,
-    incx: isize,
+    incx: usize,
     mut y: *const f32,
-    incy: isize,
+    incy: usize,
 ) -> f32 {
     if incx == 1 && incy == 1 {
         let mut acc = _mm256_setzero_ps();
         for _ in 0..n / STEP {
             unroll4!({
                 acc = _mm256_fmadd_ps(_mm256_loadu_ps(x), _mm256_loadu_ps(y), acc);
-                x = x.offset(8);
-                y = y.offset(8);
+                x = x.add(8);
+                y = y.add(8);
             });
         }
         let mut acc = hadd_ps(acc);
         for _ in 0..n % STEP {
             acc += *x * *y;
-            x = x.offset(1);
-            y = y.offset(1);
+            x = x.add(1);
+            y = y.add(1);
         }
         acc
     } else {
         let mut acc = 0.0;
         for _ in 0..n {
             acc += *x * *y;
-            x = x.offset(incx);
-            y = y.offset(incy);
+            x = x.add(incx);
+            y = y.add(incy);
         }
         acc
     }
@@ -244,34 +244,34 @@ pub unsafe fn sdsdot(
     n: usize,
     b: f32,
     mut x: *const f32,
-    incx: isize,
+    incx: usize,
     mut y: *const f32,
-    incy: isize,
+    incy: usize,
 ) -> f32 {
     let mut acc: f64 = f64::from(b);
     for _ in 0..n {
         acc += f64::from(*x) * f64::from(*y);
-        x = x.offset(incx);
-        y = y.offset(incy);
+        x = x.add(incx);
+        y = y.add(incy);
     }
     acc as f32
 }
 
-pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: isize) -> f32 {
+pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: usize) -> f32 {
     if incx == 1 {
         let mut acc = _mm256_setzero_ps();
         for _ in 0..n / STEP {
             unroll4!({
                 let xv = _mm256_loadu_ps(x);
                 acc = _mm256_fmadd_ps(xv, xv, acc);
-                x = x.offset(8);
+                x = x.add(8);
             });
         }
         let mut acc = hadd_ps(acc);
         for _ in 0..n % STEP {
             let xi = *x;
             acc += xi * xi;
-            x = x.offset(1);
+            x = x.add(1);
         }
         acc.sqrt()
     } else {
@@ -279,39 +279,39 @@ pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: isize) -> f32 {
         for _ in 0..n {
             let xi = *x;
             acc += xi * xi;
-            x = x.offset(incx);
+            x = x.add(incx);
         }
         acc.sqrt()
     }
 }
 
-pub unsafe fn sasum(n: usize, mut x: *const f32, incx: isize) -> f32 {
+pub unsafe fn sasum(n: usize, mut x: *const f32, incx: usize) -> f32 {
     if incx == 1 {
         let mut acc = _mm256_setzero_ps();
         let mask = _mm256_broadcast_ss(&*(&SABS_MASK as *const u32 as *const f32));
         for _ in 0..n / STEP {
             unroll4!({
                 acc = _mm256_add_ps(_mm256_and_ps(mask, _mm256_loadu_ps(x)), acc);
-                x = x.offset(8);
+                x = x.add(8);
             });
         }
         let mut acc = hadd_ps(acc);
         for _ in 0..n % STEP {
             acc += (*x).abs();
-            x = x.offset(1);
+            x = x.add(1);
         }
         acc
     } else {
         let mut acc = 0.0;
         for _ in 0..n {
             acc += (*x).abs();
-            x = x.offset(incx);
+            x = x.add(incx);
         }
         acc
     }
 }
 
-pub unsafe fn isamax(n: usize, mut x: *const f32, incx: isize) -> usize {
+pub unsafe fn isamax(n: usize, mut x: *const f32, incx: usize) -> usize {
     let mut max = 0.0;
     let mut imax = 0;
     for i in 0..n {
@@ -320,7 +320,7 @@ pub unsafe fn isamax(n: usize, mut x: *const f32, incx: isize) -> usize {
             max = xi;
             imax = i;
         }
-        x = x.offset(incx);
+        x = x.add(incx);
     }
     imax
 }

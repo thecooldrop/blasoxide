@@ -30,7 +30,7 @@ pub unsafe fn sgemm(
 ) {
     const MC: usize = 512;
     const KC: usize = 256;
-    const NB: usize = 1000;
+    const NB: usize = 1024;
 
     let mut packed_a = vec![0.0; MC * KC];
     let mut packed_b = vec![0.0; KC * NB];
@@ -38,14 +38,14 @@ pub unsafe fn sgemm(
     let mut beta_scale = beta;
 
     for j in (0..n).step_by(NB) {
-        let nb = std::cmp::min(n - j, NB);
+        let jb = std::cmp::min(n - j, NB);
         for p in (0..k).step_by(KC) {
             let pb = std::cmp::min(k - p, KC);
             for i in (0..m).step_by(MC) {
                 let ib = std::cmp::min(m - i, MC);
                 inner_kernel(
                     ib,
-                    nb,
+                    jb,
                     pb,
                     alpha,
                     a.add(i + p * lda),
