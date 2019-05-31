@@ -28,6 +28,7 @@ pub unsafe fn sgemm(
 
     for j in (0..n).step_by(NB) {
         let jb = std::cmp::min(n - j, NB);
+        let mut beta_scale = beta;
         for p in (0..k).step_by(KC) {
             let pb = std::cmp::min(k - p, KC);
             for i in (0..m).step_by(MC) {
