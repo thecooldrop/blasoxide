@@ -24,8 +24,6 @@ pub unsafe fn sgemm(
     let mut packed_a = vec![0.0; MC * KC];
     let mut packed_b = vec![0.0; KC * NB];
 
-    let mut beta_scale = beta;
-
     for j in (0..n).step_by(NB) {
         let jb = std::cmp::min(n - j, NB);
         let mut beta_scale = beta;
