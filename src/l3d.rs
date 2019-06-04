@@ -178,7 +178,7 @@ pub unsafe fn dgemm(
             _mm256_storeu_pd(packed_a, _mm256_mul_pd(alphav, _mm256_loadu_pd(a)));
 
             a = a.add(lda);
-            packed_a = packed_a.add(8);
+            packed_a = packed_a.add(4);
         }
     }
 
@@ -213,7 +213,7 @@ pub unsafe fn dgemm(
             c2_reg_v = _mm256_fmadd_pd(a0_reg_v, bp2reg, c2_reg_v);
             c3_reg_v = _mm256_fmadd_pd(a0_reg_v, bp3reg, c3_reg_v);
 
-            a = a.add(8);
+            a = a.add(4);
             b = b.add(4);
         }
 
