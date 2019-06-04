@@ -46,8 +46,8 @@ pub unsafe fn drot(
                 _mm256_storeu_pd(x, _mm256_fmadd_pd(cv, xv, _mm256_mul_pd(sv, yv)));
                 _mm256_storeu_pd(y, _mm256_fmsub_pd(cv, yv, _mm256_mul_pd(sv, xv)));
 
-                x = x.add(8);
-                y = y.add(8);
+                x = x.add(4);
+                y = y.add(4);
             });
         }
         for _ in 0..n % STEP {
@@ -82,8 +82,8 @@ pub unsafe fn dswap(n: usize, mut x: *mut f64, incx: usize, mut y: *mut f64, inc
                 let yv = _mm256_loadu_pd(y);
                 _mm256_storeu_pd(x, yv);
                 _mm256_storeu_pd(y, xv);
-                x = x.add(8);
-                y = y.add(8);
+                x = x.add(4);
+                y = y.add(4);
             });
         }
         for _ in 0..n % STEP {
@@ -116,7 +116,7 @@ pub unsafe fn dscal(n: usize, a: f64, mut x: *mut f64, incx: usize) {
         for _ in 0..n / STEP {
             unroll4!({
                 _mm256_storeu_pd(x, _mm256_mul_pd(av, _mm256_loadu_pd(x)));
-                x = x.add(8);
+                x = x.add(4);
             });
         }
         for _ in 0..n % STEP {
@@ -136,8 +136,8 @@ pub unsafe fn dcopy(n: usize, mut x: *const f64, incx: usize, mut y: *mut f64, i
         for _ in 0..n / STEP {
             unroll4!({
                 _mm256_storeu_pd(y, _mm256_loadu_pd(x));
-                x = x.add(8);
-                y = y.add(8);
+                x = x.add(4);
+                y = y.add(4);
             });
         }
         for _ in 0..n % STEP {
@@ -170,8 +170,8 @@ pub unsafe fn daxpy(
                     y,
                     _mm256_fmadd_pd(av, _mm256_loadu_pd(x), _mm256_loadu_pd(y)),
                 );
-                x = x.add(8);
-                y = y.add(8);
+                x = x.add(4);
+                y = y.add(4);
             });
         }
         for _ in 0..n % STEP {
@@ -200,8 +200,8 @@ pub unsafe fn ddot(
         for _ in 0..n / STEP {
             unroll4!({
                 acc = _mm256_fmadd_pd(_mm256_loadu_pd(x), _mm256_loadu_pd(y), acc);
-                x = x.add(8);
-                y = y.add(8);
+                x = x.add(4);
+                y = y.add(4);
             });
         }
         let mut acc = hadd_pd(acc);
@@ -229,7 +229,7 @@ pub unsafe fn dnrm2(n: usize, mut x: *const f64, incx: usize) -> f64 {
             unroll4!({
                 let xv = _mm256_loadu_pd(x);
                 acc = _mm256_fmadd_pd(xv, xv, acc);
-                x = x.add(8);
+                x = x.add(4);
             });
         }
         let mut acc = hadd_pd(acc);
@@ -257,7 +257,7 @@ pub unsafe fn dasum(n: usize, mut x: *const f64, incx: usize) -> f64 {
         for _ in 0..n / STEP {
             unroll4!({
                 acc = _mm256_add_pd(_mm256_and_pd(mask, _mm256_loadu_pd(x)), acc);
-                x = x.add(8);
+                x = x.add(4);
             });
         }
         let mut acc = hadd_pd(acc);
