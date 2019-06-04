@@ -42,16 +42,16 @@ mod tests {
     #[test]
     fn test_hadd_ps() {
         unsafe {
-            let v = std::mem::transmute::<[f32; 8], __m256>([1., 2., 3., 4., 5., 6., 7., 8.]);
-            assert_eq!(hadd_ps(v), 36.);
+            let a = [1., 2., 3., 4., 5., 6., 7., 8.];
+            assert_eq!(hadd_ps(_mm256_loadu_ps(a.as_ptr())), 36.);
         }
     }
 
     #[test]
     fn test_hadd_pd() {
         unsafe {
-            let v = std::mem::transmute::<[f64; 4], __m256d>([1., 2., 3., 4.]);
-            assert_eq!(hadd_pd(v), 10.);
+            let a = [1., 2., 3., 4.];
+            assert_eq!(hadd_pd(_mm256_loadu_pd(a.as_ptr())), 10.);
         }
     }
 }
