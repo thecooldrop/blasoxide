@@ -2,6 +2,9 @@
 
 use blasoxide::*;
 
+const SIZES: [usize; 5] = [251, 501, 1001, 2001, 4001];
+const STRIDES: [(usize, usize); 6] = [(1, 1), (1, 7), (7, 1), (7, 11), (11, 7), (11, 11)];
+
 #[test]
 fn test_drotg() {
     assert_eq!(drotg(0., 0.), (0., 0., 1., 0.));
@@ -13,7 +16,7 @@ fn test_drotg() {
     assert_eq!(drotg(3., 4.), (5., 1. / 0.6, 0.6, 0.8));
 }
 
-fn test_drot(n: usize, incx: usize, incy: usize, c: f64, s: f64) {
+fn drot_driver(n: usize, incx: usize, incy: usize, c: f64, s: f64) {
     let mut x = vec![2.; n * incx];
     let mut y = vec![3.; n * incy];
 
@@ -38,38 +41,11 @@ fn test_drot(n: usize, incx: usize, incy: usize, c: f64, s: f64) {
     }
 }
 
-fn test_drot_mul(n: usize) {
-    test_drot(n, 1, 1, 4., 5.);
-    test_drot(n, 1, 2, 4., 5.);
-    test_drot(n, 2, 1, 4., 5.);
-    test_drot(n, 7, 1, 4., 5.);
-    test_drot(n, 1, 7, 4., 5.);
-    test_drot(n, 9, 7, 4., 5.);
-    test_drot(n, 7, 9, 4., 5.);
-    test_drot(n, 7, 7, 4., 5.);
-}
-
 #[test]
-fn test_drot_250() {
-    test_drot_mul(250);
-}
-
-#[test]
-fn test_drot_500() {
-    test_drot_mul(500);
-}
-
-#[test]
-fn test_drot_1000() {
-    test_drot_mul(1000);
-}
-
-#[test]
-fn test_drot_2000() {
-    test_drot_mul(2000);
-}
-
-#[test]
-fn test_drot_4000() {
-    test_drot_mul(4000);
+fn test_drot() {
+    for &n in SIZES.iter() {
+        for &(incx, incy) in STRIDES.iter() {
+            drot_driver(n, incx, incy, 5., 4.);
+        }
+    }
 }
