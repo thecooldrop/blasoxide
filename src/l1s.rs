@@ -1,23 +1,5 @@
 use core::arch::x86_64::*;
-
-macro_rules! unroll4 {
-    ($e:expr) => {{
-        $e;
-        $e;
-        $e;
-        $e;
-    }};
-}
-
-#[inline(always)]
-unsafe fn hadd_ps(mut v: __m256) -> f32 {
-    v = _mm256_hadd_ps(v, v);
-    v = _mm256_hadd_ps(v, v);
-    let v = std::mem::transmute::<__m256, [f32; 8]>(v);
-    v[0] + v[4]
-}
-
-static SABS_MASK: u32 = 0x7FFF_FFFF;
+use crate::common::{SABS_MASK, hadd_ps};
 
 const STEP: usize = 8 * 4;
 
