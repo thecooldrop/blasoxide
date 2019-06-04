@@ -171,8 +171,8 @@ pub unsafe fn dgemm(
         }
     }
 
-    unsafe fn pack_a(k: usize, alpha: f64, mut a: *const f32, lda: usize, mut packed_a: *mut f64) {
-        let alphav = _mm256_broadcast_ss(&alpha);
+    unsafe fn pack_a(k: usize, alpha: f64, mut a: *const f64, lda: usize, mut packed_a: *mut f64) {
+        let alphav = _mm256_broadcast_sd(&alpha);
 
         for _ in 0..k {
             _mm256_storeu_pd(packed_a, _mm256_mul_pd(alphav, _mm256_loadu_pd(a)));
@@ -225,7 +225,7 @@ pub unsafe fn dgemm(
 
     unsafe fn add_dot_1x1(
         k: usize,
-        alpha: f32,
+        alpha: f64,
         mut a: *const f64,
         lda: usize,
         mut b: *const f64,
