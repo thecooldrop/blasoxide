@@ -3,14 +3,14 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::float_cmp)]
 
-mod level1;
-pub use level1::*;
+mod l1s;
+pub use l1s::*;
 
-mod level2;
-pub use level2::*;
+mod l2s;
+pub use l2s::*;
 
-mod level3;
-pub use level3::*;
+mod l3s;
+pub use l3s::*;
 
 #[derive(Clone, Copy)]
 struct SSend(*const f32);
