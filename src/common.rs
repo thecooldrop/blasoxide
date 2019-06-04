@@ -10,13 +10,16 @@ macro_rules! unroll4 {
 }
 
 #[inline(always)]
-pub unsafe fn hadd_ps(mut v: __m256) -> f32 {
-    v = _mm256_hadd_ps(v, v);
-    v = _mm256_hadd_ps(v, v);
-    let vhigh = _mm256_extractf128_ps(v, 1);
-    let vlow = _mm256_castps256_ps128(v);
-    let vsum = _mm_add_ps(vhigh, vlow);
-    _mm_cvtss_f32(vsum)
+pub unsafe fn hadd_ps(v: __m256) -> f32 {
+    let qhigh = _mm256_extractf128_ps(v, 1);
+    let qlow = _mm256_castps256_ps128(v);
+    let qsum = _mm_add_ps(qhigh, qlow);
+    let dhigh = _mm_movehl_ps(qsum, qsum);
+    let dlow = qsum;
+    let dsum = _mm_add_ps(dhigh, dlow);
+    let high = _mm_shuffle_ps(dsum, dsum, 1);
+    let low = dsum;
+    _mm_cvtss_f32(_mm_add_ss(high, low))
 }
 
 pub static SABS_MASK: u32 = 0x7FFF_FFFF;
