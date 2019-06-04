@@ -13,8 +13,8 @@ pub unsafe fn dgemv(
     y: *mut f64,
     incy: usize,
 ) {
-    const MC: usize = 512;
-    const NC: usize = 256;
+    const MC: usize = 256;
+    const NC: usize = 128;
 
     let mut beta_scale = beta;
 
