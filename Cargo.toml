@@ -1,6 +1,6 @@
 [package]
 name = "blasoxide"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Özgür Akkurt <oezgurmakkurt@gmail.com>"]
 edition = "2018"
 description = "BLAS implementation in rust"
