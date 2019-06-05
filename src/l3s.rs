@@ -70,7 +70,7 @@ pub unsafe fn sgemm(
     ) {
         let n_left = n % 4;
         let n_main = n - n_left;
-        let m_left = m % 8;
+        let m_left = m % 16;
         let m_main = m - m_left;
 
         let a = SSend(a);
@@ -99,8 +99,8 @@ pub unsafe fn sgemm(
             .collect::<Vec<_>>()
             .par_iter()
             .for_each(move |&j| {
-                for i in (0..m_main).step_by(8) {
-                    add_dot_8x4_packed(
+                for i in (0..m_main).step_by(16) {
+                    add_dot_16x4_packed(
                         k,
                         packed_a.0.add(i * k),
                         packed_b.0.add(j * k),
@@ -126,8 +126,8 @@ pub unsafe fn sgemm(
             });
 
         for j in n_main..n {
-            for i in (0..m_main).step_by(8) {
-                add_dot_8x1(
+            for i in (0..m_main).step_by(16) {
+                add_dot_16x1(
                     k,
                     alpha,
                     a.0.add(i),
@@ -182,7 +182,7 @@ pub unsafe fn sgemm(
         }
     }
 
-    unsafe fn add_dot_8x4_packed(
+    unsafe fn add_dot_16x4_packed(
         k: usize,
         mut a: *const f32,
         mut b: *const f32,
@@ -190,19 +190,25 @@ pub unsafe fn sgemm(
         c: *mut f32,
         ldc: usize,
     ) {
-        let cptr0 = &mut *c;
-        let cptr1 = &mut *c.add(ldc);
-        let cptr2 = &mut *c.add(2 * ldc);
-        let cptr3 = &mut *c.add(3 * ldc);
+        let cptr0 = c;
+        let cptr1 = c.add(ldc);
+        let cptr2 = c.add(2 * ldc);
+        let cptr3 = c.add(3 * ldc);
 
         let betav = _mm256_broadcast_ss(&beta);
         let mut c0_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr0));
         let mut c1_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr1));
         let mut c2_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr2));
         let mut c3_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr3));
+        let mut c01_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr0.add(8)));
+        let mut c11_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr1.add(8)));
+        let mut c21_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr2.add(8)));
+        let mut c31_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr3.add(8)));
 
         for _ in 0..k {
             let a0_reg_v = _mm256_loadu_ps(a);
+            let a1_reg_v = _mm256_loadu_ps(a.add(8));
+
             let bp0reg = _mm256_broadcast_ss(&*b);
             let bp1reg = _mm256_broadcast_ss(&*b.add(1));
             let bp2reg = _mm256_broadcast_ss(&*b.add(2));
@@ -212,8 +218,12 @@ pub unsafe fn sgemm(
             c1_reg_v = _mm256_fmadd_ps(a0_reg_v, bp1reg, c1_reg_v);
             c2_reg_v = _mm256_fmadd_ps(a0_reg_v, bp2reg, c2_reg_v);
             c3_reg_v = _mm256_fmadd_ps(a0_reg_v, bp3reg, c3_reg_v);
+            c01_reg_v = _mm256_fmadd_ps(a1_reg_v, bp0reg, c01_reg_v);
+            c11_reg_v = _mm256_fmadd_ps(a1_reg_v, bp1reg, c11_reg_v);
+            c21_reg_v = _mm256_fmadd_ps(a1_reg_v, bp2reg, c21_reg_v);
+            c31_reg_v = _mm256_fmadd_ps(a1_reg_v, bp3reg, c31_reg_v);
 
-            a = a.add(8);
+            a = a.add(16);
             b = b.add(4);
         }
 
@@ -221,6 +231,10 @@ pub unsafe fn sgemm(
         _mm256_storeu_ps(cptr1, c1_reg_v);
         _mm256_storeu_ps(cptr2, c2_reg_v);
         _mm256_storeu_ps(cptr3, c3_reg_v);
+        _mm256_storeu_ps(cptr0.add(8), c01_reg_v);
+        _mm256_storeu_ps(cptr1.add(8), c11_reg_v);
+        _mm256_storeu_ps(cptr2.add(8), c21_reg_v);
+        _mm256_storeu_ps(cptr3.add(8), c31_reg_v);
     }
 
     unsafe fn add_dot_1x1(
@@ -293,7 +307,7 @@ pub unsafe fn sgemm(
         *cptr3 = c3_reg;
     }
 
-    unsafe fn add_dot_8x1(
+    unsafe fn add_dot_16x1(
         k: usize,
         alpha: f32,
         mut a: *const f32,
@@ -302,22 +316,24 @@ pub unsafe fn sgemm(
         beta: f32,
         c: *mut f32,
     ) {
-        let cptr0 = &mut *c;
-
         let betav = _mm256_broadcast_ss(&beta);
-        let mut c0_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(cptr0));
+        let mut c0_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(c));
+        let mut c1_reg_v = _mm256_mul_ps(betav, _mm256_loadu_ps(c.add(8)));
         let alphav = _mm256_broadcast_ss(&alpha);
 
         for _ in 0..k {
             let a0_reg_v = _mm256_mul_ps(alphav, _mm256_loadu_ps(a));
+            let a1_reg_v = _mm256_mul_ps(alphav, _mm256_loadu_ps(a.add(8)));
             let b0_reg_v = _mm256_broadcast_ss(&*b);
 
             c0_reg_v = _mm256_fmadd_ps(a0_reg_v, b0_reg_v, c0_reg_v);
+            c1_reg_v = _mm256_fmadd_ps(a1_reg_v, b0_reg_v, c1_reg_v);
 
             a = a.add(lda);
             b = b.add(1);
         }
 
-        _mm256_storeu_ps(cptr0, c0_reg_v);
+        _mm256_storeu_ps(c, c0_reg_v);
+        _mm256_storeu_ps(c.add(8), c1_reg_v);
     }
 }
