@@ -2,7 +2,13 @@
 
 use blasoxide::*;
 
-const SIZES: [(usize, usize, usize); 5] = [(251, 251, 251), (251, 551, 375), (251, 3001, 2001), (1025, 1025, 1025), (551, 251, 1001)];
+const SIZES: [(usize, usize, usize); 5] = [
+    (251, 251, 251),
+    (251, 551, 375),
+    (251, 3001, 2001),
+    (1025, 1025, 1025),
+    (551, 251, 1001),
+];
 
 fn dgemm_driver(m: usize, n: usize, k: usize, lda: usize, ldb: usize, ldc: usize) {
     let a = vec![2.; k * lda];
@@ -10,7 +16,21 @@ fn dgemm_driver(m: usize, n: usize, k: usize, lda: usize, ldb: usize, ldc: usize
     let mut c = vec![5.; n * ldc];
 
     unsafe {
-        dgemm(false, false, m, n, k, 7., a.as_ptr(), lda, b.as_ptr(), ldb, 11., c.as_mut_ptr(), ldc);
+        dgemm(
+            false,
+            false,
+            m,
+            n,
+            k,
+            7.,
+            a.as_ptr(),
+            lda,
+            b.as_ptr(),
+            ldb,
+            11.,
+            c.as_mut_ptr(),
+            ldc,
+        );
     }
 
     for j in 0..n {
