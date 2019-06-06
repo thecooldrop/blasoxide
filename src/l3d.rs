@@ -88,7 +88,7 @@ pub unsafe fn dgemm(
                     pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
                 }
                 if j == 0 {
-                    for i in (0..m_main).step_by(4) {
+                    for i in (0..m_main).step_by(8) {
                         pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
                     }
                 }
@@ -176,9 +176,10 @@ pub unsafe fn dgemm(
 
         for _ in 0..k {
             _mm256_storeu_pd(packed_a, _mm256_mul_pd(alphav, _mm256_loadu_pd(a)));
+            _mm256_storeu_pd(packed_a.add(4), _mm256_mul_pd(alphav, _mm256_loadu_pd(a.add(4))));
 
             a = a.add(lda);
-            packed_a = packed_a.add(4);
+            packed_a = packed_a.add(8);
         }
     }
 
