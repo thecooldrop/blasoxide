@@ -11,7 +11,7 @@ BLAS implementation in rust
 - sgemv, dgemv
 - sgemm, dgemm
 - all functions are optimized for cpus with avx and fma
-- performance is very close to openblas
+- performance is on par with openblas
 
  ## Building
  
