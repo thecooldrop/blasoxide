@@ -21,8 +21,8 @@ pub unsafe fn dgemm(
     const KC: usize = 128;
     const NB: usize = 1024;
 
-    let mut packed_a = vec![0.0; MC * KC];
-    let mut packed_b = vec![0.0; KC * NB];
+    let mut packed_a = Vec::with_capacity(MC * KC);
+    let mut packed_b = Vec::with_capacity(KC * NB);
 
     for j in (0..n).step_by(NB) {
         let jb = std::cmp::min(n - j, NB);
@@ -88,7 +88,7 @@ pub unsafe fn dgemm(
                     pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
                 }
                 if j == 0 {
-                    for i in (0..m_main).step_by(8) {
+                    for i in (0..m_main).step_by(4) {
                         pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
                     }
                 }
