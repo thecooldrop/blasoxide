@@ -3,6 +3,9 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::float_cmp)]
 
+#[cfg(not(all(target_feature = "avx2", target_feature = "fma")))]
+compile_error!("blasoxide needs avx and fma to compile, maybe set RUSTFLAGS=-C target-cpu=native");
+
 #[macro_use]
 mod common;
 

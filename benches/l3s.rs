@@ -32,6 +32,25 @@ fn sgemm_driver(m: usize, n: usize, k: usize, bencher: &mut Bencher) {
 }
 
 #[bench]
-fn bench_sgemm(bencher: &mut Bencher) {
-    sgemm_driver(1024, 1024, 1024, bencher);
+fn bench_sgemm_250(bencher: &mut Bencher) {
+    const LEN: usize = 250;
+    sgemm_driver(LEN, LEN, LEN, bencher);
+}
+
+#[bench]
+fn bench_sgemm_500(bencher: &mut Bencher) {
+    const LEN: usize = 500;
+    sgemm_driver(LEN, LEN, LEN, bencher);
+}
+
+#[bench]
+fn bench_sgemm_1000(bencher: &mut Bencher) {
+    const LEN: usize = 1000;
+    sgemm_driver(LEN, LEN, LEN, bencher);
+}
+
+#[bench]
+fn bench_sgemm_2000(bencher: &mut Bencher) {
+    const LEN: usize = 2000;
+    sgemm_driver(LEN, LEN, LEN, bencher);
 }
