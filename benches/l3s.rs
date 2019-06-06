@@ -31,6 +31,31 @@ fn sgemm_driver(m: usize, n: usize, k: usize, bencher: &mut Bencher) {
     });
 }
 
+fn mm_sgemm_driver(m: usize, n: usize, k: usize, bencher: &mut Bencher) {
+    let a = vec![2.; m * k];
+    let b = vec![3.; k * n];
+    let mut c = vec![5.; m * n];
+
+    bencher.iter(|| unsafe {
+        matrixmultiply::sgemm(
+            m,
+            n,
+            k,
+            7.,
+            a.as_ptr(),
+            1,
+            m as isize,
+            b.as_ptr(),
+            1,
+            k as isize,
+            11.,
+            c.as_mut_ptr(),
+            1,
+            m as isize,
+        );
+    });
+}
+
 #[bench]
 fn bench_sgemm_250(bencher: &mut Bencher) {
     const LEN: usize = 250;
@@ -47,6 +72,12 @@ fn bench_sgemm_500(bencher: &mut Bencher) {
 fn bench_sgemm_1000(bencher: &mut Bencher) {
     const LEN: usize = 1000;
     sgemm_driver(LEN, LEN, LEN, bencher);
+}
+
+#[bench]
+fn bench_matrixmultiply_sgemm_1000(bencher: &mut Bencher) {
+    const LEN: usize = 1000;
+    mm_sgemm_driver(LEN, LEN, LEN, bencher);
 }
 
 #[bench]

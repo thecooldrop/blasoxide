@@ -13,6 +13,9 @@ license = "MIT"
 [dependencies]
 rayon = "1.0.3"
 
+[dev-dependencies]
+matrixmultiply = "0.2.2"
+
 [package.metadata.docs.rs]
 rustc-args = ["-C", "target-feature=+avx2,+fma"]
 rustdoc-args = ["-C", "target-feature=+avx2,+fma"]
