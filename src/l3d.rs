@@ -176,7 +176,10 @@ pub unsafe fn dgemm(
 
         for _ in 0..k {
             _mm256_storeu_pd(packed_a, _mm256_mul_pd(alphav, _mm256_loadu_pd(a)));
-            _mm256_storeu_pd(packed_a.add(4), _mm256_mul_pd(alphav, _mm256_loadu_pd(a.add(4))));
+            _mm256_storeu_pd(
+                packed_a.add(4),
+                _mm256_mul_pd(alphav, _mm256_loadu_pd(a.add(4))),
+            );
 
             a = a.add(lda);
             packed_a = packed_a.add(8);

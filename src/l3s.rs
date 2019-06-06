@@ -176,7 +176,10 @@ pub unsafe fn sgemm(
 
         for _ in 0..k {
             _mm256_storeu_ps(packed_a, _mm256_mul_ps(alphav, _mm256_loadu_ps(a)));
-            _mm256_storeu_ps(packed_a.add(8), _mm256_mul_ps(alphav, _mm256_loadu_ps(a.add(8))));
+            _mm256_storeu_ps(
+                packed_a.add(8),
+                _mm256_mul_ps(alphav, _mm256_loadu_ps(a.add(8))),
+            );
 
             a = a.add(lda);
             packed_a = packed_a.add(16);
