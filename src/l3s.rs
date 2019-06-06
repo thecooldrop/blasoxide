@@ -88,7 +88,7 @@ pub unsafe fn sgemm(
                     pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
                 }
                 if j == 0 {
-                    for i in (0..m_main).step_by(8) {
+                    for i in (0..m_main).step_by(16) {
                         pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
                     }
                 }

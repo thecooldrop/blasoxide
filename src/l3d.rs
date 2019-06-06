@@ -88,7 +88,7 @@ pub unsafe fn dgemm(
                     pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
                 }
                 if j == 0 {
-                    for i in (0..m_main).step_by(4) {
+                    for i in (0..m_main).step_by(8) {
                         pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
                     }
                 }
