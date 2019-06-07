@@ -1,5 +1,4 @@
 use crate::util::{DSend, DSendMut};
-use core::arch::x86_64::*;
 use rayon::prelude::*;
 
 pub unsafe fn dgemm(
@@ -89,7 +88,7 @@ pub unsafe fn dgemm(
                 }
                 if j == 0 {
                     for i in (0..m_main).step_by(8) {
-                        pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
+                        crate::d_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
                     }
                 }
             });
@@ -111,33 +110,22 @@ pub unsafe fn dgemm(
                 }
 
                 for i in m_main..m {
-                    add_dot_1x4(
-                        k,
-                        alpha,
-                        a.0.add(i),
-                        lda,
-                        b.0.add(j * ldb),
-                        ldb,
-                        beta,
-                        c.0.add(i + j * ldc),
-                        ldc,
-                    );
+                    for q in 0..4 {
+                        add_dot_1x1(
+                            k,
+                            alpha,
+                            a.0.add(i),
+                            lda,
+                            b.0.add((j+q) * ldb),
+                            beta,
+                            c.0.add(i + (j+q) * ldc),
+                        );
+                    }
                 }
             });
 
         for j in n_main..n {
-            for i in (0..m_main).step_by(8) {
-                add_dot_8x1(
-                    k,
-                    alpha,
-                    a.0.add(i),
-                    lda,
-                    b.0.add(j * ldb),
-                    beta,
-                    c.0.add(i + j * ldc),
-                );
-            }
-            for i in m_main..m {
+            for i in 0..m {
                 add_dot_1x1(
                     k,
                     alpha,
@@ -171,21 +159,6 @@ pub unsafe fn dgemm(
         }
     }
 
-    unsafe fn pack_a(k: usize, alpha: f64, mut a: *const f64, lda: usize, mut packed_a: *mut f64) {
-        let alphav = _mm256_broadcast_sd(&alpha);
-
-        for _ in 0..k {
-            _mm256_storeu_pd(packed_a, _mm256_mul_pd(alphav, _mm256_loadu_pd(a)));
-            _mm256_storeu_pd(
-                packed_a.add(4),
-                _mm256_mul_pd(alphav, _mm256_loadu_pd(a.add(4))),
-            );
-
-            a = a.add(lda);
-            packed_a = packed_a.add(8);
-        }
-    }
-
     unsafe fn add_dot_1x1(
         k: usize,
         alpha: f64,
@@ -203,86 +176,5 @@ pub unsafe fn dgemm(
             b = b.add(1);
         }
         *c = c0reg;
-    }
-
-    unsafe fn add_dot_1x4(
-        k: usize,
-        alpha: f64,
-        mut a: *const f64,
-        lda: usize,
-        b: *const f64,
-        ldb: usize,
-        beta: f64,
-        c: *mut f64,
-        ldc: usize,
-    ) {
-        let mut bptr0 = b;
-        let mut bptr1 = b.add(ldb);
-        let mut bptr2 = b.add(ldb * 2);
-        let mut bptr3 = b.add(ldb * 3);
-
-        let cptr0 = c;
-        let cptr1 = c.add(ldc);
-        let cptr2 = c.add(2 * ldc);
-        let cptr3 = c.add(3 * ldc);
-
-        let mut c0_reg = *cptr0 * beta;
-        let mut c1_reg = *cptr1 * beta;
-        let mut c2_reg = *cptr2 * beta;
-        let mut c3_reg = *cptr3 * beta;
-
-        for _ in 0..k {
-            let a0_reg = *a * alpha;
-            let bp0reg = *bptr0;
-            let bp1reg = *bptr1;
-            let bp2reg = *bptr2;
-            let bp3reg = *bptr3;
-
-            c0_reg += a0_reg * bp0reg;
-            c1_reg += a0_reg * bp1reg;
-            c2_reg += a0_reg * bp2reg;
-            c3_reg += a0_reg * bp3reg;
-
-            a = a.add(lda);
-            bptr0 = bptr0.add(1);
-            bptr1 = bptr1.add(1);
-            bptr2 = bptr2.add(1);
-            bptr3 = bptr3.add(1);
-        }
-
-        *cptr0 = c0_reg;
-        *cptr1 = c1_reg;
-        *cptr2 = c2_reg;
-        *cptr3 = c3_reg;
-    }
-
-    unsafe fn add_dot_8x1(
-        k: usize,
-        alpha: f64,
-        mut a: *const f64,
-        lda: usize,
-        mut b: *const f64,
-        beta: f64,
-        c: *mut f64,
-    ) {
-        let betav = _mm256_broadcast_sd(&beta);
-        let mut c0_reg_v = _mm256_mul_pd(betav, _mm256_loadu_pd(c));
-        let mut c1_reg_v = _mm256_mul_pd(betav, _mm256_loadu_pd(c.add(4)));
-        let alphav = _mm256_broadcast_sd(&alpha);
-
-        for _ in 0..k {
-            let a0_reg_v = _mm256_mul_pd(alphav, _mm256_loadu_pd(a));
-            let a1_reg_v = _mm256_mul_pd(alphav, _mm256_loadu_pd(a.add(4)));
-            let b0_reg_v = _mm256_broadcast_sd(&*b);
-
-            c0_reg_v = _mm256_fmadd_pd(a0_reg_v, b0_reg_v, c0_reg_v);
-            c1_reg_v = _mm256_fmadd_pd(a1_reg_v, b0_reg_v, c1_reg_v);
-
-            a = a.add(lda);
-            b = b.add(1);
-        }
-
-        _mm256_storeu_pd(c, c0_reg_v);
-        _mm256_storeu_pd(c.add(4), c1_reg_v);
     }
 }

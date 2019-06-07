@@ -50,6 +50,16 @@ pub unsafe fn sgemm_16x4_packed(
     }
 }
 
+pub unsafe fn s_pack_a(k: usize, alpha: f32, a: *const f32, lda: usize, packed_a: *mut f32) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if is_x86_feature_detected!("fma") {
+            crate::fma::s_pack_a(k, alpha, a, lda, packed_a);
+            return;
+        }
+    }
+}
+
 pub unsafe fn dgemm_8x4_packed(
     k: usize,
     a: *const f64,
@@ -99,5 +109,15 @@ pub unsafe fn dgemm_8x4_packed(
         *cptr1.add(i) = creg1;
         *cptr2.add(i) = creg2;
         *cptr3.add(i) = creg3;
+    }
+}
+
+pub unsafe fn d_pack_a(k: usize, alpha: f64, a: *const f64, lda: usize, packed_a: *mut f64) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if is_x86_feature_detected!("fma") {
+            crate::fma::d_pack_a(k, alpha, a, lda, packed_a);
+            return;
+        }
     }
 }

@@ -57,6 +57,22 @@ pub unsafe fn sgemm_16x4_packed(
 }
 
 #[target_feature(enable = "fma")]
+pub unsafe fn s_pack_a(k: usize, alpha: f32, mut a: *const f32, lda: usize, mut packed_a: *mut f32) {
+    let alphav = _mm256_broadcast_ss(&alpha);
+
+    for _ in 0..k {
+        _mm256_storeu_ps(packed_a, _mm256_mul_ps(alphav, _mm256_loadu_ps(a)));
+        _mm256_storeu_ps(
+            packed_a.add(8),
+            _mm256_mul_ps(alphav, _mm256_loadu_ps(a.add(8))),
+        );
+
+        a = a.add(lda);
+        packed_a = packed_a.add(16);
+    }
+}
+
+#[target_feature(enable = "fma")]
 pub unsafe fn dgemm_8x4_packed(
     k: usize,
     mut a: *const f64,
@@ -110,4 +126,20 @@ pub unsafe fn dgemm_8x4_packed(
     _mm256_storeu_pd(cptr1.add(4), c11_reg_v);
     _mm256_storeu_pd(cptr2.add(4), c21_reg_v);
     _mm256_storeu_pd(cptr3.add(4), c31_reg_v);
+}
+
+#[target_feature(enable = "fma")]
+pub unsafe fn d_pack_a(k: usize, alpha: f64, mut a: *const f64, lda: usize, mut packed_a: *mut f64) {
+    let alphav = _mm256_broadcast_sd(&alpha);
+
+    for _ in 0..k {
+        _mm256_storeu_pd(packed_a, _mm256_mul_pd(alphav, _mm256_loadu_pd(a)));
+        _mm256_storeu_pd(
+            packed_a.add(4),
+            _mm256_mul_pd(alphav, _mm256_loadu_pd(a.add(4))),
+        );
+
+        a = a.add(lda);
+        packed_a = packed_a.add(8);
+    }
 }
