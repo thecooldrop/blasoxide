@@ -57,7 +57,13 @@ pub unsafe fn sgemm_16x4_packed(
 }
 
 #[target_feature(enable = "fma")]
-pub unsafe fn s_pack_a(k: usize, alpha: f32, mut a: *const f32, lda: usize, mut packed_a: *mut f32) {
+pub unsafe fn s_pack_a(
+    k: usize,
+    alpha: f32,
+    mut a: *const f32,
+    lda: usize,
+    mut packed_a: *mut f32,
+) {
     let alphav = _mm256_broadcast_ss(&alpha);
 
     for _ in 0..k {
@@ -129,7 +135,13 @@ pub unsafe fn dgemm_8x4_packed(
 }
 
 #[target_feature(enable = "fma")]
-pub unsafe fn d_pack_a(k: usize, alpha: f64, mut a: *const f64, lda: usize, mut packed_a: *mut f64) {
+pub unsafe fn d_pack_a(
+    k: usize,
+    alpha: f64,
+    mut a: *const f64,
+    lda: usize,
+    mut packed_a: *mut f64,
+) {
     let alphav = _mm256_broadcast_sd(&alpha);
 
     for _ in 0..k {

@@ -24,7 +24,7 @@ pub unsafe fn sgemm_16x4_packed(
         let mut creg1 = *cptr1.add(i) * beta;
         let mut creg2 = *cptr2.add(i) * beta;
         let mut creg3 = *cptr3.add(i) * beta;
-        
+
         let mut bptr = b;
 
         for p in 0..k {
@@ -86,7 +86,7 @@ pub unsafe fn dgemm_8x4_packed(
         let mut creg1 = *cptr1.add(i) * beta;
         let mut creg2 = *cptr2.add(i) * beta;
         let mut creg3 = *cptr3.add(i) * beta;
-        
+
         let mut bptr = b;
 
         for p in 0..k {

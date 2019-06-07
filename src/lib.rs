@@ -1,5 +1,3 @@
-#[macro_use]
-extern crate cfg_if;
 extern crate rayon;
 
 mod util;
@@ -7,14 +5,14 @@ mod util;
 #[cfg(target_arch = "x86_64")]
 mod fma;
 
-cfg_if! {
-    if #[cfg(all(target_arch = "x86_64", target_feature = "fma"))] {
-        pub use fma::*;
-    } else {
-        mod generic;
-        pub use generic::*;
-    }
-}
+#[cfg(all(target_arch = "x86_64", target_feature = "fma"))]
+pub use fma::*;
+
+#[cfg(not(all(target_arch = "x86_64", target_feature = "fma")))]
+mod generic;
+
+#[cfg(not(all(target_arch = "x86_64", target_feature = "fma")))]
+pub use generic::*;
 
 mod l2s;
 pub use l2s::*;

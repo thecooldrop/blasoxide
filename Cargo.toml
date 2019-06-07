@@ -12,4 +12,3 @@ license = "MIT"
 
 [dependencies]
 rayon = "1.0.3"
-cfg-if = "0.1.9"
