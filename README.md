@@ -5,22 +5,20 @@
 
 BLAS implementation in rust
 
-## Features
+### Architecture
 
-- level 1 double and single precision operations
-- sgemv, dgemv
-- sgemm, dgemm
-- all functions are optimized for cpus with avx and fma
-- performance is very close to openblas
+Only Level1 functions and micro kernels for gemm functions are optimized with platform specific code.
 
- ## Building
- 
- Enable avx and fma by doing `export RUSTFLAGS="-C target-cpu=native"`
- 
- ## Testing
- 
- `cargo test --release`
- 
- ## Benchmarking
- 
- `cargo +nightly bench`
+Optimizations are split into submodules and used statically if appropriate `target_feature`s are present at compile time.
+
+If there are no `target_feature`s in compile time, generic code is compiled, generic code checks optimization support at runtime
+and calls best possible optimization level.
+
+Level2 functions are optimized using Level1 functions so there is no need to write seperate implementations for them.
+
+Gemm functions are parralelized with rayon.
+
+### Supported CPUs
+These cpus have optimized implementations for them
+
+- x86_64 cpus with avx and fma support
