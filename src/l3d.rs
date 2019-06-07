@@ -1,4 +1,4 @@
-use crate::{DSend, DSendMut};
+use crate::util::{DSend, DSendMut};
 use core::arch::x86_64::*;
 use rayon::prelude::*;
 
