@@ -3,17 +3,19 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::float_cmp)]
 
-#[cfg(not(all(target_feature = "avx2", target_feature = "fma")))]
-compile_error!("blasoxide needs avx and fma to compile, maybe set RUSTFLAGS=-C target-cpu=native");
+mod util;
 
-#[macro_use]
-mod common;
+#[cfg(target_arch = "x86_64")]
+mod fma;
 
-mod l1s;
-pub use l1s::*;
+#[cfg(all(target_arch = "x86_64", target_feature = "fma"))]
+pub use fma::*;
 
-mod l1d;
-pub use l1d::*;
+#[cfg(not(all(target_arch = "x86_64", target_feature = "fma")))]
+mod generic;
+
+#[cfg(not(all(target_arch = "x86_64", target_feature = "fma")))]
+pub use generic::*;
 
 mod l2s;
 pub use l2s::*;
@@ -26,27 +28,3 @@ pub use l3s::*;
 
 mod l3d;
 pub use l3d::*;
-
-#[derive(Clone, Copy)]
-struct SSend(*const f32);
-
-unsafe impl Send for SSend {}
-unsafe impl Sync for SSend {}
-
-#[derive(Clone, Copy)]
-struct SSendMut(*mut f32);
-
-unsafe impl Send for SSendMut {}
-unsafe impl Sync for SSendMut {}
-
-#[derive(Clone, Copy)]
-struct DSend(*const f64);
-
-unsafe impl Send for DSend {}
-unsafe impl Sync for DSend {}
-
-#[derive(Clone, Copy)]
-struct DSendMut(*mut f64);
-
-unsafe impl Send for DSendMut {}
-unsafe impl Sync for DSendMut {}

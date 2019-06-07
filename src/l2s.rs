@@ -1,95 +1,83 @@
-use core::arch::x86_64::*;
-
 pub unsafe fn sgemv(
     _trans: bool,
     m: usize,
     n: usize,
     alpha: f32,
-    a: *const f32,
+    mut a: *const f32,
     lda: usize,
-    x: *const f32,
+    mut x: *const f32,
     incx: usize,
     beta: f32,
     y: *mut f32,
     incy: usize,
 ) {
-    const MC: usize = 512;
-    const NC: usize = 256;
-
     let mut beta_scale = beta;
 
-    for j in (0..n).step_by(NC) {
-        let jb = std::cmp::min(n - j, NC);
-        for i in (0..m).step_by(MC) {
-            let ib = std::cmp::min(m - i, MC);
-            inner_kernel(
-                ib,
-                jb,
-                alpha,
-                a.add(i + j * lda),
-                lda,
-                x.add(j * incx),
-                incx,
-                beta_scale,
-                y.add(i * incy),
-                incy,
-            );
+    if incy == 1 {
+        for _ in 0..n / 4 {
+            crate::scombine_4(m, alpha, a, lda, x, incx, beta_scale, y);
+
+            x = x.add(4 * incx);
+            a = a.add(4 * lda);
+            beta_scale = 1.0;
         }
-        beta_scale = 1.0;
-    }
 
-    unsafe fn inner_kernel(
-        m: usize,
-        n: usize,
-        alpha: f32,
-        a: *const f32,
-        lda: usize,
-        x: *const f32,
-        incx: usize,
-        beta: f32,
-        y: *mut f32,
-        incy: usize,
-    ) {
-        if incy == 1 {
-            let m_left = m % 8;
-            let m_main = m - m_left;
+        for _ in 0..n % 4 {
+            crate::scombine_1(m, alpha, a, x, beta_scale, y);
 
-            let alphav = _mm256_broadcast_ss(&alpha);
-            let mut beta_scale = beta;
+            x = x.add(incx);
+            a = a.add(lda);
+            beta_scale = 1.0;
+        }
+    } else {
+        for _ in 0..n / 4 {
+            let mut aptr0 = a;
+            let mut aptr1 = a.add(lda);
+            let mut aptr2 = a.add(lda * 2);
+            let mut aptr3 = a.add(lda * 3);
 
-            for j in 0..n {
-                let betav = _mm256_broadcast_ss(&beta_scale);
-                let xbase = x.add(j * incx);
-                let xreg = _mm256_broadcast_ss(&*xbase);
-                for i in (0..m_main).step_by(8) {
-                    let areg = _mm256_mul_ps(alphav, _mm256_loadu_ps(a.add(i + j * lda)));
-                    let ybase = y.add(i * incy);
-                    _mm256_storeu_ps(
-                        ybase,
-                        _mm256_fmadd_ps(areg, xreg, _mm256_mul_ps(betav, _mm256_loadu_ps(ybase))),
-                    );
-                }
-                for i in m_main..m {
-                    let areg = *a.add(i + j * lda) * alpha;
-                    let ybase = y.add(i * incy);
-                    let xbase = x.add(j * incx);
-                    *ybase = beta_scale * *ybase + areg * *xbase;
-                }
+            let xreg0 = *x * alpha;
+            let xreg1 = *x.add(incx) * alpha;
+            let xreg2 = *x.add(2 * incx) * alpha;
+            let xreg3 = *x.add(3 * incx) * alpha;
 
-                beta_scale = 1.0;
+            let mut yptr = y;
+
+            for _ in 0..m {
+                *yptr = beta_scale * *yptr
+                    + *aptr0 * xreg0
+                    + *aptr1 * xreg1
+                    + *aptr2 * xreg2
+                    + *aptr3 * xreg3;
+                yptr = yptr.add(incy);
+                aptr0 = aptr0.add(1);
+                aptr1 = aptr1.add(1);
+                aptr2 = aptr2.add(1);
+                aptr3 = aptr3.add(1);
             }
-        } else {
-            let mut beta_scale = beta;
-            for j in 0..n {
-                let xreg = *x.add(j * incx);
-                for i in 0..m {
-                    let areg = alpha * *a.add(i + j * lda);
-                    let ybase = y.add(i * incy);
-                    *ybase = *ybase * beta_scale + xreg * areg;
-                }
 
-                beta_scale = 1.0;
+            x = x.add(4 * incx);
+            a = a.add(4 * lda);
+            beta_scale = 1.0;
+        }
+
+        for _ in 0..n % 4 {
+            let mut aptr = a;
+
+            let xreg = *x * alpha;
+
+            let mut yptr = y;
+
+            for _ in 0..m {
+                *yptr = beta_scale * *yptr + *aptr * xreg;
+
+                yptr = yptr.add(incy);
+                aptr = aptr.add(1);
             }
+
+            x = x.add(incx);
+            a = a.add(lda);
+            beta_scale = 1.0;
         }
     }
 }
