@@ -25,6 +25,7 @@ pub fn srotg(a: f32, b: f32) -> (f32, f32, f32, f32) {
     (r, z, c, s)
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn srot(
     n: usize,
     mut x: *mut f32,
@@ -74,6 +75,7 @@ pub unsafe fn srot(
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn sswap(n: usize, mut x: *mut f32, incx: usize, mut y: *mut f32, incy: usize) {
     if incx == 1 && incy == 1 {
         for _ in 0..n / STEP {
@@ -110,6 +112,7 @@ pub unsafe fn sswap(n: usize, mut x: *mut f32, incx: usize, mut y: *mut f32, inc
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn sscal(n: usize, a: f32, mut x: *mut f32, incx: usize) {
     if incx == 1 {
         let av = _mm256_broadcast_ss(&a);
@@ -131,6 +134,7 @@ pub unsafe fn sscal(n: usize, a: f32, mut x: *mut f32, incx: usize) {
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn scopy(n: usize, mut x: *const f32, incx: usize, mut y: *mut f32, incy: usize) {
     if incx == 1 && incy == 1 {
         for _ in 0..n / STEP {
@@ -154,6 +158,7 @@ pub unsafe fn scopy(n: usize, mut x: *const f32, incx: usize, mut y: *mut f32, i
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn saxpy(
     n: usize,
     a: f32,
@@ -188,6 +193,7 @@ pub unsafe fn saxpy(
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn sdot(
     n: usize,
     mut x: *const f32,
@@ -239,6 +245,7 @@ pub unsafe fn sdsdot(
     acc as f32
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: usize) -> f32 {
     if incx == 1 {
         let mut acc = _mm256_setzero_ps();
@@ -267,6 +274,7 @@ pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: usize) -> f32 {
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn sasum(n: usize, mut x: *const f32, incx: usize) -> f32 {
     if incx == 1 {
         let mut acc = _mm256_setzero_ps();

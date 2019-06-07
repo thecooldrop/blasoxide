@@ -25,6 +25,7 @@ pub fn drotg(a: f64, b: f64) -> (f64, f64, f64, f64) {
     (r, z, c, s)
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn drot(
     n: usize,
     mut x: *mut f64,
@@ -74,6 +75,7 @@ pub unsafe fn drot(
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn dswap(n: usize, mut x: *mut f64, incx: usize, mut y: *mut f64, incy: usize) {
     if incx == 1 && incy == 1 {
         for _ in 0..n / STEP {
@@ -110,6 +112,7 @@ pub unsafe fn dswap(n: usize, mut x: *mut f64, incx: usize, mut y: *mut f64, inc
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn dscal(n: usize, a: f64, mut x: *mut f64, incx: usize) {
     if incx == 1 {
         let av = _mm256_broadcast_sd(&a);
@@ -131,6 +134,7 @@ pub unsafe fn dscal(n: usize, a: f64, mut x: *mut f64, incx: usize) {
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn dcopy(n: usize, mut x: *const f64, incx: usize, mut y: *mut f64, incy: usize) {
     if incx == 1 && incy == 1 {
         for _ in 0..n / STEP {
@@ -154,6 +158,7 @@ pub unsafe fn dcopy(n: usize, mut x: *const f64, incx: usize, mut y: *mut f64, i
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn daxpy(
     n: usize,
     a: f64,
@@ -188,6 +193,7 @@ pub unsafe fn daxpy(
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn ddot(
     n: usize,
     mut x: *const f64,
@@ -222,6 +228,7 @@ pub unsafe fn ddot(
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn dnrm2(n: usize, mut x: *const f64, incx: usize) -> f64 {
     if incx == 1 {
         let mut acc = _mm256_setzero_pd();
@@ -250,6 +257,7 @@ pub unsafe fn dnrm2(n: usize, mut x: *const f64, incx: usize) -> f64 {
     }
 }
 
+#[target_feature(enable = "fma")]
 pub unsafe fn dasum(n: usize, mut x: *const f64, incx: usize) -> f64 {
     if incx == 1 {
         let mut acc = _mm256_setzero_pd();
