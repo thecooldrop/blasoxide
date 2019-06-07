@@ -3,6 +3,7 @@ use core::arch::x86_64::*;
 
 const STEP: usize = 4 * 4;
 
+#[cfg(target_feature = "fma")]
 pub fn drotg(a: f64, b: f64) -> (f64, f64, f64, f64) {
     if a == 0.0 && b == 0.0 {
         return (0.0, 0.0, 1.0, 0.0);
@@ -284,6 +285,7 @@ pub unsafe fn dasum(n: usize, mut x: *const f64, incx: usize) -> f64 {
     }
 }
 
+#[cfg(target_feature = "fma")]
 pub unsafe fn idamax(n: usize, mut x: *const f64, incx: usize) -> usize {
     let mut max = 0.0;
     let mut imax = 0;
