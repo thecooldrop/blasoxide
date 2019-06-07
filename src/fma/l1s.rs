@@ -3,6 +3,7 @@ use core::arch::x86_64::*;
 
 const STEP: usize = 8 * 4;
 
+#[cfg(target_feature = "fma")]
 pub fn srotg(a: f32, b: f32) -> (f32, f32, f32, f32) {
     if a == 0.0 && b == 0.0 {
         return (0.0, 0.0, 1.0, 0.0);
@@ -228,6 +229,7 @@ pub unsafe fn sdot(
     }
 }
 
+#[cfg(target_feature = "fma")]
 pub unsafe fn sdsdot(
     n: usize,
     b: f32,
@@ -301,6 +303,7 @@ pub unsafe fn sasum(n: usize, mut x: *const f32, incx: usize) -> f32 {
     }
 }
 
+#[cfg(target_feature = "fma")]
 pub unsafe fn isamax(n: usize, mut x: *const f32, incx: usize) -> usize {
     let mut max = 0.0;
     let mut imax = 0;
