@@ -1,5 +1,3 @@
-use core::arch::x86_64::*;
-
 pub unsafe fn dgemv(
     _trans: bool,
     m: usize,

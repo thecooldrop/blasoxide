@@ -7,5 +7,5 @@ pub use l1s::*;
 mod l1d;
 pub use l1d::*;
 
-mod l3kernel;
-pub(crate) use l3kernel::*;
+mod kernel;
+pub(crate) use kernel::*;

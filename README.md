@@ -7,16 +7,14 @@ BLAS implementation in rust
 
 ### Architecture
 
-Only Level1 functions and micro kernels for gemm functions are optimized with platform specific code.
+Only Level1 functions and micro kernels are optimized with platform specific code.
 
 Optimizations are split into submodules and used statically if appropriate `target_feature`s are present at compile time.
 
 If there are no `target_feature`s at compile time, generic code is compiled, generic code checks optimization support at runtime
 and calls best possible optimization level.
 
-Level2 functions are optimized using Level1 functions so there is no need to write seperate implementations for them.
-
-Gemm functions are parallelized with rayon.
+Level3 functions are parallelized with rayon.
 
 ### Supported CPUs
 These cpus have optimized implementations for them
