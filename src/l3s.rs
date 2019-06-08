@@ -78,19 +78,22 @@ pub unsafe fn sgemm(
         let packed_a = SSendMut(packed_a);
         let packed_b = SSendMut(packed_b);
 
-        (0..n_main)
-            .step_by(4)
+        if first_time {
+            (0..n_main)
+                .step_by(4)
+                .collect::<Vec<_>>()
+                .par_iter()
+                .for_each(move |&j| {
+                    pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
+                });
+        }
+
+        (0..m_main)
+            .step_by(16)
             .collect::<Vec<_>>()
             .par_iter()
-            .for_each(move |&j| {
-                if first_time {
-                    pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
-                }
-                if j == 0 {
-                    for i in (0..m_main).step_by(16) {
-                        crate::s_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
-                    }
-                }
+            .for_each(move |&i| {
+                crate::s_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
             });
 
         (0..n_main)
