@@ -178,6 +178,27 @@ pub unsafe fn scombine_4(
             return;
         }
     }
+
+    let mut aptr0 = a;
+    let mut aptr1 = a.add(lda);
+    let mut aptr2 = a.add(lda * 2);
+    let mut aptr3 = a.add(lda * 3);
+
+    let xreg0 = *x * alpha;
+    let xreg1 = *x.add(incx) * alpha;
+    let xreg2 = *x.add(2 * incx) * alpha;
+    let xreg3 = *x.add(3 * incx) * alpha;
+
+    let mut yptr = y;
+
+    for _ in 0..m {
+        *yptr = beta * *yptr + *aptr0 * xreg0 + *aptr1 * xreg1 + *aptr2 * xreg2 + *aptr3 * xreg3;
+        yptr = yptr.add(1);
+        aptr0 = aptr0.add(1);
+        aptr1 = aptr1.add(1);
+        aptr2 = aptr2.add(1);
+        aptr3 = aptr3.add(1);
+    }
 }
 
 #[target_feature(enable = "fma")]
@@ -198,6 +219,26 @@ pub unsafe fn dcombine_4(
             return;
         }
     }
+    let mut aptr0 = a;
+    let mut aptr1 = a.add(lda);
+    let mut aptr2 = a.add(lda * 2);
+    let mut aptr3 = a.add(lda * 3);
+
+    let xreg0 = *x * alpha;
+    let xreg1 = *x.add(incx) * alpha;
+    let xreg2 = *x.add(2 * incx) * alpha;
+    let xreg3 = *x.add(3 * incx) * alpha;
+
+    let mut yptr = y;
+
+    for _ in 0..m {
+        *yptr = beta * *yptr + *aptr0 * xreg0 + *aptr1 * xreg1 + *aptr2 * xreg2 + *aptr3 * xreg3;
+        yptr = yptr.add(1);
+        aptr0 = aptr0.add(1);
+        aptr1 = aptr1.add(1);
+        aptr2 = aptr2.add(1);
+        aptr3 = aptr3.add(1);
+    }
 }
 
 #[target_feature(enable = "fma")]
@@ -216,6 +257,19 @@ pub unsafe fn scombine_1(
             return;
         }
     }
+
+    let mut aptr = a;
+
+    let xreg = *x * alpha;
+
+    let mut yptr = y;
+
+    for _ in 0..m {
+        *yptr = beta * *yptr + *aptr * xreg;
+
+        yptr = yptr.add(1);
+        aptr = aptr.add(1);
+    }
 }
 
 #[target_feature(enable = "fma")]
@@ -233,5 +287,18 @@ pub unsafe fn dcombine_1(
             crate::fma::dcombine_1(m, alpha, a, x, beta, y);
             return;
         }
+    }
+
+    let mut aptr = a;
+
+    let xreg = *x * alpha;
+
+    let mut yptr = y;
+
+    for _ in 0..m {
+        *yptr = beta * *yptr + *aptr * xreg;
+
+        yptr = yptr.add(1);
+        aptr = aptr.add(1);
     }
 }

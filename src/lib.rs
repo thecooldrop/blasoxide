@@ -1,4 +1,7 @@
-extern crate rayon;
+#![deny(warnings)]
+#![allow(clippy::many_single_char_names)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::float_cmp)]
 
 mod util;
 

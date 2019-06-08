@@ -44,11 +44,11 @@ pub unsafe fn sgemv(
             let mut yptr = y;
 
             for _ in 0..m {
-                *yptr = beta_scale * *yptr +
-                    *aptr0 * xreg0 +
-                    *aptr1 * xreg1 +
-                    *aptr2 * xreg2 +
-                    *aptr3 * xreg3;
+                *yptr = beta_scale * *yptr
+                    + *aptr0 * xreg0
+                    + *aptr1 * xreg1
+                    + *aptr2 * xreg2
+                    + *aptr3 * xreg3;
                 yptr = yptr.add(incy);
                 aptr0 = aptr0.add(1);
                 aptr1 = aptr1.add(1);
