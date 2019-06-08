@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 extern crate rayon;
 
 mod util;
