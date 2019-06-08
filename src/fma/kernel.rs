@@ -158,7 +158,7 @@ pub unsafe fn d_pack_a(
 
 #[target_feature(enable = "fma")]
 pub unsafe fn scombine_4(
-    n: usize,
+    m: usize,
     alpha: f32,
     a: *const f32,
     lda: usize,
@@ -172,22 +172,26 @@ pub unsafe fn scombine_4(
     let mut aptr2 = a.add(2 * lda);
     let mut aptr3 = a.add(3 * lda);
 
-    let xreg0 = _mm256_broadcast_ss(&*x);
-    let xreg1 = _mm256_broadcast_ss(&*x.add(incx));
-    let xreg2 = _mm256_broadcast_ss(&*x.add(incx * 2));
-    let xreg3 = _mm256_broadcast_ss(&*x.add(incx * 3));
+    let xreg0 = *x * alpha;
+    let xreg1 = *x.add(incx) * alpha;
+    let xreg2 = *x.add(2 * incx) * alpha;
+    let xreg3 = *x.add(3 * incx) * alpha;
+
+    let xreg0 = _mm256_broadcast_ss(&xreg0);
+    let xreg1 = _mm256_broadcast_ss(&xreg1);
+    let xreg2 = _mm256_broadcast_ss(&xreg2);
+    let xreg3 = _mm256_broadcast_ss(&xreg3);
 
     let mut yptr = y;
 
     let betav = _mm256_broadcast_ss(&beta);
-    let alphav = _mm256_broadcast_ss(&alpha);
 
-    for _ in 0..n / 8 {
+    for _ in 0..m / 8 {
         let yreg = _mm256_mul_ps(betav, _mm256_loadu_ps(yptr));
-        let areg0 = _mm256_mul_ps(alphav, _mm256_loadu_ps(aptr0));
-        let areg1 = _mm256_mul_ps(alphav, _mm256_loadu_ps(aptr1));
-        let areg2 = _mm256_mul_ps(alphav, _mm256_loadu_ps(aptr2));
-        let areg3 = _mm256_mul_ps(alphav, _mm256_loadu_ps(aptr3));
+        let areg0 = _mm256_mul_ps(xreg0, _mm256_loadu_ps(aptr0));
+        let areg1 = _mm256_mul_ps(xreg1, _mm256_loadu_ps(aptr1));
+        let areg2 = _mm256_mul_ps(xreg2, _mm256_loadu_ps(aptr2));
+        let areg3 = _mm256_mul_ps(xreg3, _mm256_loadu_ps(aptr3));
 
         let sum0 = _mm256_add_ps(areg0, areg1);
         let sum1 = _mm256_add_ps(areg2, areg3);
@@ -203,7 +207,7 @@ pub unsafe fn scombine_4(
         yptr = yptr.add(8);
     }
 
-    for _ in 0..n % 8 {
+    for _ in 0..m % 8 {
         let yreg = beta * *yptr;
         let areg0 = alpha * *aptr0;
         let areg1 = alpha * *aptr1;
@@ -222,11 +226,12 @@ pub unsafe fn scombine_4(
 
 #[target_feature(enable = "fma")]
 pub unsafe fn dcombine_4(
-    n: usize,
+    m: usize,
     alpha: f64,
     a: *const f64,
     lda: usize,
     x: *const f64,
+    incx: usize,
     beta: f64,
     y: *mut f64,
 ) {
@@ -235,22 +240,26 @@ pub unsafe fn dcombine_4(
     let mut aptr2 = a.add(2 * lda);
     let mut aptr3 = a.add(3 * lda);
 
-    let xreg0 = _mm256_broadcast_sd(&*x);
-    let xreg1 = _mm256_broadcast_sd(&*x.add(incx));
-    let xreg2 = _mm256_broadcast_sd(&*x.add(incx * 2));
-    let xreg3 = _mm256_broadcast_sd(&*x.add(incx * 3));
+    let xreg0 = *x * alpha;
+    let xreg1 = *x.add(incx) * alpha;
+    let xreg2 = *x.add(2 * incx) * alpha;
+    let xreg3 = *x.add(3 * incx) * alpha;
+
+    let xreg0 = _mm256_broadcast_sd(&xreg0);
+    let xreg1 = _mm256_broadcast_sd(&xreg1);
+    let xreg2 = _mm256_broadcast_sd(&xreg2);
+    let xreg3 = _mm256_broadcast_sd(&xreg3);
 
     let mut yptr = y;
 
     let betav = _mm256_broadcast_sd(&beta);
-    let alphav = _mm256_broadcast_sd(&alpha);
 
-    for _ in 0..n / 4 {
+    for _ in 0..m / 4 {
         let yreg = _mm256_mul_pd(betav, _mm256_loadu_pd(yptr));
-        let areg0 = _mm256_mul_pd(alphav, _mm256_loadu_pd(aptr0));
-        let areg1 = _mm256_mul_pd(alphav, _mm256_loadu_pd(aptr1));
-        let areg2 = _mm256_mul_pd(alphav, _mm256_loadu_pd(aptr2));
-        let areg3 = _mm256_mul_pd(alphav, _mm256_loadu_pd(aptr3));
+        let areg0 = _mm256_mul_pd(xreg0, _mm256_loadu_pd(aptr0));
+        let areg1 = _mm256_mul_pd(xreg1, _mm256_loadu_pd(aptr1));
+        let areg2 = _mm256_mul_pd(xreg2, _mm256_loadu_pd(aptr2));
+        let areg3 = _mm256_mul_pd(xreg3, _mm256_loadu_pd(aptr3));
 
         let sum0 = _mm256_add_pd(areg0, areg1);
         let sum1 = _mm256_add_pd(areg2, areg3);
@@ -266,7 +275,7 @@ pub unsafe fn dcombine_4(
         yptr = yptr.add(4);
     }
 
-    for _ in 0..n % 4 {
+    for _ in 0..m % 4 {
         let yreg = beta * *yptr;
         let areg0 = alpha * *aptr0;
         let areg1 = alpha * *aptr1;
@@ -279,6 +288,80 @@ pub unsafe fn dcombine_4(
         aptr1 = aptr1.add(1);
         aptr2 = aptr2.add(1);
         aptr3 = aptr3.add(1);
+        yptr = yptr.add(1);
+    }
+}
+
+#[target_feature(enable = "fma")]
+pub unsafe fn scombine_1(
+    m: usize,
+    alpha: f32,
+    a: *const f32,
+    x: *const f32,
+    beta: f32,
+    y: *mut f32,
+) {
+    let mut aptr = a;
+    let mut yptr = y;
+
+    let xreg = *x * alpha;
+    let xreg = _mm256_broadcast_ss(&xreg);
+
+    let betav = _mm256_broadcast_ss(&beta);
+
+    for _ in 0..m / 8 {
+        let yreg = _mm256_mul_ps(betav, _mm256_loadu_ps(yptr));
+
+        _mm256_storeu_ps(yptr, _mm256_fmadd_ps(yreg, xreg, _mm256_loadu_ps(aptr)));
+
+        aptr = aptr.add(8);
+        yptr = yptr.add(8);
+    }
+
+    for _ in 0..m % 8 {
+        let yreg = beta * *yptr;
+        let areg = alpha * *aptr;
+
+        *yptr = yreg + areg;
+
+        aptr = aptr.add(1);
+        yptr = yptr.add(1);
+    }
+}
+
+#[target_feature(enable = "fma")]
+pub unsafe fn dcombine_1(
+    m: usize,
+    alpha: f64,
+    a: *const f64,
+    x: *const f64,
+    beta: f64,
+    y: *mut f64,
+) {
+    let mut aptr = a;
+    let mut yptr = y;
+
+    let xreg = *x * alpha;
+    let xreg = _mm256_broadcast_sd(&xreg);
+
+    let betav = _mm256_broadcast_sd(&beta);
+
+    for _ in 0..m / 4 {
+        let yreg = _mm256_mul_pd(betav, _mm256_loadu_pd(yptr));
+
+        _mm256_storeu_pd(yptr, _mm256_fmadd_pd(yreg, xreg, _mm256_loadu_pd(aptr)));
+
+        aptr = aptr.add(4);
+        yptr = yptr.add(4);
+    }
+
+    for _ in 0..m % 4 {
+        let yreg = beta * *yptr;
+        let areg = alpha * *aptr;
+
+        *yptr = yreg + areg;
+
+        aptr = aptr.add(1);
         yptr = yptr.add(1);
     }
 }

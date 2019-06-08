@@ -68,7 +68,7 @@ pub unsafe fn s_pack_a(
     for _ in 0..k {
         let mut aptr = a;
 
-        for i in 0..16 {
+        for _ in 0..16 {
             *packed_a = alpha * *aptr;
 
             aptr = aptr.add(1);
@@ -149,7 +149,7 @@ pub unsafe fn d_pack_a(
     for _ in 0..k {
         let mut aptr = a;
 
-        for i in 0..8 {
+        for _ in 0..8 {
             *packed_a = alpha * *aptr;
 
             aptr = aptr.add(1);
@@ -157,5 +157,81 @@ pub unsafe fn d_pack_a(
         }
 
         a = a.add(lda);
+    }
+}
+
+#[target_feature(enable = "fma")]
+pub unsafe fn scombine_4(
+    m: usize,
+    alpha: f32,
+    a: *const f32,
+    lda: usize,
+    x: *const f32,
+    incx: usize,
+    beta: f32,
+    y: *mut f32,
+) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if is_x86_feature_detected!("fma") {
+            crate::fma::scombine_4(m, alpha, a, lda, x, incx, beta, y);
+            return;
+        }
+    }
+}
+
+#[target_feature(enable = "fma")]
+pub unsafe fn dcombine_4(
+    m: usize,
+    alpha: f64,
+    a: *const f64,
+    lda: usize,
+    x: *const f64,
+    incx: usize,
+    beta: f64,
+    y: *mut f64,
+) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if is_x86_feature_detected!("fma") {
+            crate::fma::dcombine_4(m, alpha, a, lda, x, incx, beta, y);
+            return;
+        }
+    }
+}
+
+#[target_feature(enable = "fma")]
+pub unsafe fn scombine_1(
+    m: usize,
+    alpha: f32,
+    a: *const f32,
+    x: *const f32,
+    beta: f32,
+    y: *mut f32,
+) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if is_x86_feature_detected!("fma") {
+            crate::fma::scombine_1(m, alpha, a, x, beta, y);
+            return;
+        }
+    }
+}
+
+#[target_feature(enable = "fma")]
+pub unsafe fn dcombine_1(
+    m: usize,
+    alpha: f64,
+    a: *const f64,
+    x: *const f64,
+    beta: f64,
+    y: *mut f64,
+) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if is_x86_feature_detected!("fma") {
+            crate::fma::dcombine_1(m, alpha, a, x, beta, y);
+            return;
+        }
     }
 }
