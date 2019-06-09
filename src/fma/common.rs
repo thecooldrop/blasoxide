@@ -9,7 +9,8 @@ macro_rules! unroll4 {
     }};
 }
 
-#[inline(always)]
+#[inline]
+#[target_feature(enable = "fma")]
 pub unsafe fn hadd_ps(v: __m256) -> f32 {
     let qhigh = _mm256_extractf128_ps(v, 1);
     let qlow = _mm256_castps256_ps128(v);
@@ -24,7 +25,8 @@ pub unsafe fn hadd_ps(v: __m256) -> f32 {
 
 pub static SABS_MASK: u32 = 0x7FFF_FFFF;
 
-#[inline(always)]
+#[inline]
+#[target_feature(enable = "fma")]
 pub unsafe fn hadd_pd(v: __m256d) -> f64 {
     let vhigh = _mm256_extractf128_pd(v, 1);
     let vlow = _mm256_castpd256_pd128(v);
