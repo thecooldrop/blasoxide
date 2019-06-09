@@ -1,14 +1,5 @@
 use core::arch::x86_64::*;
 
-macro_rules! unroll4 {
-    ($e:expr) => {{
-        $e;
-        $e;
-        $e;
-        $e;
-    }};
-}
-
 #[inline]
 #[target_feature(enable = "fma")]
 pub unsafe fn hadd_ps(v: __m256) -> f32 {
@@ -23,8 +14,6 @@ pub unsafe fn hadd_ps(v: __m256) -> f32 {
     _mm_cvtss_f32(_mm_add_ss(high, low))
 }
 
-pub static SABS_MASK: u32 = 0x7FFF_FFFF;
-
 #[inline]
 #[target_feature(enable = "fma")]
 pub unsafe fn hadd_pd(v: __m256d) -> f64 {
@@ -34,8 +23,6 @@ pub unsafe fn hadd_pd(v: __m256d) -> f64 {
     let h64 = _mm_unpackhi_pd(vsum, vsum);
     _mm_cvtsd_f64(_mm_add_sd(vsum, h64))
 }
-
-pub static DABS_MASK: u64 = 0x7FFF_FFFF_FFFF_FFFF;
 
 #[cfg(test)]
 mod tests {

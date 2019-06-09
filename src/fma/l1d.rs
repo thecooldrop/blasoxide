@@ -1,4 +1,5 @@
-use super::common::{hadd_pd, DABS_MASK};
+use super::common::hadd_pd;
+use crate::util::DABS_MASK;
 use core::arch::x86_64::*;
 
 const STEP: usize = 4 * 4;

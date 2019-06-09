@@ -21,3 +21,15 @@ pub struct DSendMut(pub *mut f64);
 
 unsafe impl Send for DSendMut {}
 unsafe impl Sync for DSendMut {}
+
+pub static SABS_MASK: u32 = 0x7FFF_FFFF;
+pub static DABS_MASK: u64 = 0x7FFF_FFFF_FFFF_FFFF;
+
+macro_rules! unroll4 {
+    ($e:expr) => {{
+        $e;
+        $e;
+        $e;
+        $e;
+    }};
+}

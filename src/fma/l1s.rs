@@ -1,4 +1,5 @@
-use super::common::{hadd_ps, SABS_MASK};
+use super::common::hadd_ps;
+use crate::util::SABS_MASK;
 use core::arch::x86_64::*;
 
 const STEP: usize = 8 * 4;

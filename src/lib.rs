@@ -3,6 +3,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::float_cmp)]
 
+#[macro_use]
 mod util;
 
 #[cfg(target_arch = "x86_64")]
