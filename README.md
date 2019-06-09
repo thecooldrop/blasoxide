@@ -9,11 +9,6 @@ BLAS implementation in rust
 
 Only Level1 functions and micro kernels are optimized with platform specific code.
 
-Optimizations are split into submodules and used statically if appropriate `target_feature`s are present at compile time.
-
-If there are no `target_feature`s at compile time, generic code is compiled, generic code checks optimization support at runtime
-and calls best possible optimization level.
-
 Level3 functions are parallelized with rayon.
 
 ### Supported CPUs
