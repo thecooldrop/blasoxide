@@ -165,8 +165,7 @@ pub unsafe fn ssymv(
     if upper {
         for j in 0..n {
             crate::saxpy(j, alpha * *x.add(j * incx), a.add(j * lda), 1, y, incy);
-            *y.add(j * incy) =
-                *y.add(j * incy) + alpha * crate::sdot(j, a.add(j * lda), 1, x, incx);
+            *y.add(j * incy) += alpha * crate::sdot(j, a.add(j * lda), 1, x, incx);
         }
     } else {
         for j in 0..n {
@@ -178,8 +177,8 @@ pub unsafe fn ssymv(
                 y.add(j * incy),
                 incy,
             );
-            *y.add(j * incy) = *y.add(j * incy)
-                + alpha * crate::sdot(n - j, a.add(j + j * lda), 1, x.add(j * incx), incx);
+            *y.add(j * incy) +=
+                alpha * crate::sdot(n - j, a.add(j + j * lda), 1, x.add(j * incx), incx);
         }
     }
 }
