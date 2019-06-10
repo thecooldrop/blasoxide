@@ -164,7 +164,7 @@ pub unsafe fn dsymv(
     crate::dscal(n, beta, y, incy);
     if upper {
         for j in 0..n {
-            crate::daxpy(j, alpha * *x.add(j * incx), a.add(j * lda), 1, y, incy);
+            crate::daxpy(j + 1, alpha * *x.add(j * incx), a.add(j * lda), 1, y, incy);
             *y.add(j * incy) += alpha * crate::ddot(j, a.add(j * lda), 1, x, incx);
         }
     } else {
@@ -177,8 +177,14 @@ pub unsafe fn dsymv(
                 y.add(j * incy),
                 incy,
             );
-            *y.add(j * incy) +=
-                alpha * crate::ddot(n - j, a.add(j + j * lda), 1, x.add(j * incx), incx);
+            *y.add(j * incy) += alpha
+                * crate::ddot(
+                    n - (j + 1),
+                    a.add((j + 1) + j * lda),
+                    1,
+                    x.add((j + 1) * incx),
+                    incx,
+                );
         }
     }
 }
