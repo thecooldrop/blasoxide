@@ -81,7 +81,7 @@ pub unsafe fn dgemv(
 pub unsafe fn dtrmv(
     upper: bool,
     trans: bool,
-    _diag: bool,
+    diag: bool,
     n: usize,
     a: *const f64,
     lda: usize,
@@ -90,8 +90,24 @@ pub unsafe fn dtrmv(
 ) {
     if trans {
         if upper {
-            for j in 0..n {
-                *x.add(j * incx) = crate::ddot(j, a.add(j * lda), 1, x, incx);
+            if diag {
+                for j in 1..n {
+                    *x.add(j * incx) += crate::ddot(j - 1, a.add(j * lda), 1, x, incx);
+                }
+            } else {
+                for j in 0..n {
+                    *x.add(j * incx) = crate::ddot(j, a.add(j * lda), 1, x, incx);
+                }
+            }
+        } else if diag {
+            for j in 0..n - 1 {
+                *x.add(j * incx) += crate::ddot(
+                    n - (j + 1),
+                    a.add((j + 1) + j * lda),
+                    1,
+                    x.add((j + 1) * incx),
+                    incx,
+                );
             }
         } else {
             for j in 0..n {
@@ -99,14 +115,31 @@ pub unsafe fn dtrmv(
             }
         }
     } else if upper {
-        for j in 0..n {
-            crate::daxpy(j, *x.add(j * incx), a.add(j * lda), 1, x, incx);
+        if diag {
+            for j in 1..n {
+                crate::daxpy(j - 1, *x.add(j * incx) - 1.0, a.add(j * lda), 1, x, incx);
+            }
+        } else {
+            for j in 0..n {
+                crate::daxpy(j, *x.add(j * incx) - 1.0, a.add(j * lda), 1, x, incx);
+            }
+        }
+    } else if diag {
+        for j in 0..n - 1 {
+            crate::daxpy(
+                n - (j + 1),
+                *x.add(j * incx) - 1.0,
+                a.add((j + 1) + j * lda),
+                1,
+                x.add((j + 1) * incx),
+                incx,
+            );
         }
     } else {
         for j in 0..n {
             crate::daxpy(
                 n - j,
-                *x.add(j * incx),
+                *x.add(j * incx) - 1.0,
                 a.add(j + j * lda),
                 1,
                 x.add(j * incx),
