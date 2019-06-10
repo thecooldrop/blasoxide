@@ -16,3 +16,6 @@ Level3 functions are parallelized with rayon.
 These cpus have optimized implementations for them
 
 - x86_64 cpus with fma support
+
+### Contributing
+Anyone can contribute anything as they see fit. Just don't forget to run `cargo clippy` and `cargo fmt` before commiting
