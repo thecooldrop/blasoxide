@@ -13,8 +13,10 @@ pub unsafe fn dgemv(
 ) {
     const MC: usize = 2048;
 
-    for i in (0..m).step_by(MC) {
-        let ib = std::cmp::min(m - i, MC);
+    let m_b = MC / incy;
+
+    for i in (0..m).step_by(m_b) {
+        let ib = std::cmp::min(m - i, m_b);
         inner_kernel(
             ib,
             n,
