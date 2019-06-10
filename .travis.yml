@@ -18,7 +18,3 @@ script:
   - cargo fmt --all -- --check
   - cargo clippy
   - cargo test --release
-
-cache: cargo
-before_cache:
-- rm -rfv target/
