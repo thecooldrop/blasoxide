@@ -148,3 +148,38 @@ pub unsafe fn strmv(
         }
     }
 }
+
+pub unsafe fn ssymv(
+    upper: bool,
+    n: usize,
+    alpha: f32,
+    a: *const f32,
+    lda: usize,
+    x: *const f32,
+    incx: usize,
+    beta: f32,
+    y: *mut f32,
+    incy: usize,
+) {
+    crate::sscal(n, beta, y, incy);
+    if upper {
+        for j in 0..n {
+            crate::saxpy(j, alpha * *x.add(j * incx), a.add(j * lda), 1, y, incy);
+            *y.add(j * incy) =
+                *y.add(j * incy) + alpha * crate::sdot(j, a.add(j * lda), 1, x, incx);
+        }
+    } else {
+        for j in 0..n {
+            crate::saxpy(
+                n - j,
+                alpha * *x.add(j * incx),
+                a.add(j + j * lda),
+                1,
+                y.add(j * incy),
+                incy,
+            );
+            *y.add(j * incy) = *y.add(j * incy)
+                + alpha * crate::sdot(n - j, a.add(j + j * lda), 1, x.add(j * incx), incx);
+        }
+    }
+}
