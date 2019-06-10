@@ -1,5 +1,5 @@
 pub unsafe fn dgemv(
-    _trans: bool,
+    trans: bool,
     m: usize,
     n: usize,
     alpha: f64,
@@ -12,6 +12,18 @@ pub unsafe fn dgemv(
     incy: usize,
 ) {
     const MC: usize = 2048;
+
+    if trans {
+        crate::dscal(m, beta, y, incy);
+
+        let m_b: usize = MC / incx;
+
+        for i in (0..m).step_by(m_b) {
+            let ib = std::cmp::min(m - i, m_b);
+            inner_kernel_trans(ib, n, alpha, a.add(i), lda, x.add(i * incx), incx, y, incy);
+        }
+        return;
+    }
 
     let m_b = MC / incy;
 
@@ -46,6 +58,22 @@ pub unsafe fn dgemv(
         crate::dscal(m, beta, y, incy);
         for j in 0..n {
             crate::daxpy(m, alpha * *x.add(j * incx), a.add(j * lda), 1, y, incy);
+        }
+    }
+
+    unsafe fn inner_kernel_trans(
+        m: usize,
+        n: usize,
+        alpha: f64,
+        a: *const f64,
+        lda: usize,
+        x: *const f64,
+        incx: usize,
+        y: *mut f64,
+        incy: usize,
+    ) {
+        for j in 0..n {
+            *y.add(j * incy) += alpha * crate::ddot(m, a.add(j * lda), 1, x, incx);
         }
     }
 }
