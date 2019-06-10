@@ -1,0 +1,23 @@
+language: rust
+
+os:
+- linux
+- osx
+- windows
+
+rust:
+  - stable
+  - beta
+  - nightly
+
+install:
+  - rustup component add rustfmt
+  - rustfmt -V
+
+script:
+  - cargo fmt --all -- --check
+  - cargo test --release
+
+cache: cargo
+before_cache:
+- rm -rfv target/
