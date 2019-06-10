@@ -100,7 +100,7 @@ pub unsafe fn strmv(
                 }
             }
         } else if diag {
-            for j in 0..n - 1 {
+            for j in (0..n - 1).rev() {
                 *x.add(j * incx) += crate::sdot(
                     n - (j + 1),
                     a.add((j + 1) + j * lda),
@@ -110,7 +110,7 @@ pub unsafe fn strmv(
                 );
             }
         } else {
-            for j in 0..n {
+            for j in (0..n).rev() {
                 *x.add(j * incx) = crate::sdot(n - j, a.add(j + j * lda), 1, x.add(j * incx), incx);
             }
         }
@@ -125,7 +125,7 @@ pub unsafe fn strmv(
             }
         }
     } else if diag {
-        for j in 0..n - 1 {
+        for j in (0..n - 1).rev() {
             crate::saxpy(
                 n - (j + 1),
                 *x.add(j * incx) - 1.0,
@@ -136,7 +136,7 @@ pub unsafe fn strmv(
             );
         }
     } else {
-        for j in 0..n {
+        for j in (0..n).rev() {
             crate::saxpy(
                 n - j,
                 *x.add(j * incx) - 1.0,
