@@ -1,21 +1,22 @@
 language: rust
+dist: trusty
+sudo: true
 
 os:
 - linux
-- osx
 - windows
 
 rust:
   - stable
-  - beta
-  - nightly
 
 install:
   - rustup component add rustfmt
+  - rustup component add clippy
   - rustfmt -V
 
 script:
   - cargo fmt --all -- --check
+  - cargo clippy
   - cargo test --release
 
 cache: cargo
