@@ -77,3 +77,41 @@ pub unsafe fn sgemv(
         }
     }
 }
+
+pub unsafe fn strmv(
+    upper: bool,
+    trans: bool,
+    _diag: bool,
+    n: usize,
+    a: *const f32,
+    lda: usize,
+    x: *mut f32,
+    incx: usize,
+) {
+    if trans {
+        if upper {
+            for j in 0..n {
+                *x.add(j * incx) = crate::sdot(j, a.add(j * lda), 1, x, incx);
+            }
+        } else {
+            for j in 0..n {
+                *x.add(j * incx) = crate::sdot(n - j, a.add(j + j * lda), 1, x.add(j * incx), incx);
+            }
+        }
+    } else if upper {
+        for j in 0..n {
+            crate::saxpy(j, *x.add(j * incx), a.add(j * lda), 1, x, incx);
+        }
+    } else {
+        for j in 0..n {
+            crate::saxpy(
+                n - j,
+                *x.add(j * incx),
+                a.add(j + j * lda),
+                1,
+                x.add(j * incx),
+                incx,
+            );
+        }
+    }
+}

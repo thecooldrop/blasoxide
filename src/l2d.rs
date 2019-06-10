@@ -77,3 +77,41 @@ pub unsafe fn dgemv(
         }
     }
 }
+
+pub unsafe fn dtrmv(
+    upper: bool,
+    trans: bool,
+    _diag: bool,
+    n: usize,
+    a: *const f64,
+    lda: usize,
+    x: *mut f64,
+    incx: usize,
+) {
+    if trans {
+        if upper {
+            for j in 0..n {
+                *x.add(j * incx) = crate::ddot(j, a.add(j * lda), 1, x, incx);
+            }
+        } else {
+            for j in 0..n {
+                *x.add(j * incx) = crate::ddot(n - j, a.add(j + j * lda), 1, x.add(j * incx), incx);
+            }
+        }
+    } else if upper {
+        for j in 0..n {
+            crate::daxpy(j, *x.add(j * incx), a.add(j * lda), 1, x, incx);
+        }
+    } else {
+        for j in 0..n {
+            crate::daxpy(
+                n - j,
+                *x.add(j * incx),
+                a.add(j + j * lda),
+                1,
+                x.add(j * incx),
+                incx,
+            );
+        }
+    }
+}
