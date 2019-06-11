@@ -83,6 +83,79 @@ fn sgemv_driver_trans(m: usize, n: usize, lda: usize, incx: usize, incy: usize) 
     }
 }
 
+fn ssymv_driver(upper: bool, n: usize, lda: usize, incx: usize, incy: usize) {
+    assert!(n <= lda);
+
+    let x = vec![2.; n * incx];
+    let mut a = vec![3.; n * lda];
+    let mut na = vec![3.; n * lda];
+    let mut y = vec![5.; n * incy];
+    let mut ny = vec![5.; n * incy];
+
+    let alpha = 7.;
+    let beta = 11.;
+
+    if upper {
+        for j in 0..n {
+            for i in 0..j + 1 {
+                a[i + j * lda] = j as f32;
+                na[i + j * lda] = j as f32;
+                na[j + i * lda] = j as f32;
+            }
+        }
+    } else {
+        for j in 0..n {
+            for i in j..n {
+                a[i + j * lda] = j as f32;
+                na[i + j * lda] = j as f32;
+                na[j + i * lda] = j as f32;
+            }
+        }
+    }
+
+    unsafe {
+        ssymv(
+            upper,
+            n,
+            alpha,
+            a.as_ptr(),
+            lda,
+            x.as_ptr(),
+            incx,
+            beta,
+            y.as_mut_ptr(),
+            incy,
+        );
+    }
+
+    unsafe {
+        sgemv(
+            false,
+            n,
+            n,
+            alpha,
+            na.as_ptr(),
+            lda,
+            x.as_ptr(),
+            incx,
+            beta,
+            ny.as_mut_ptr(),
+            incy,
+        );
+    }
+
+    for (&nyi, &yi) in ny.iter().zip(y.iter()) {
+        let expected = nyi;
+        let diff = (expected - yi).abs();
+        assert!(
+            diff < (expected + yi) / 2.0 / 1.0e+4,
+            "expected={};yi={}",
+            expected,
+            yi
+        );
+    }
+}
+
 #[test]
 fn test_sgemv() {
     let lda = *SIZES.last().unwrap();
@@ -91,6 +164,18 @@ fn test_sgemv() {
         for &(incx, incy) in STRIDES.iter() {
             sgemv_driver(n, n, lda, incx, incy);
             sgemv_driver_trans(n, n, lda, incx, incy);
+        }
+    }
+}
+
+#[test]
+fn test_ssymv_sgemv_compare() {
+    let lda = *SIZES.last().unwrap();
+
+    for &n in SIZES.iter() {
+        for &(incx, incy) in STRIDES.iter() {
+            ssymv_driver(true, n, lda, incx, incy);
+            ssymv_driver(false, n, lda, incx, incy);
         }
     }
 }
