@@ -156,6 +156,77 @@ fn dsymv_driver(upper: bool, n: usize, lda: usize, incx: usize, incy: usize) {
     }
 }
 
+fn dtrmv_driver(upper: bool, trans: bool, diag: bool, n: usize, lda: usize, incx: usize) {
+    assert!(n <= lda);
+
+    let mut x = vec![2.; n * incx];
+    let mut a = vec![3.; n * lda];
+    let mut na = vec![0.; n * lda];
+    let nx = vec![2.; n * incx];
+    let mut ny = vec![2.; n * incx];
+
+    if upper {
+        for j in 0..n {
+            for i in 0..j + 1 {
+                a[i + j * lda] = j as f64;
+                na[i + j * lda] = j as f64;
+            }
+        }
+    } else {
+        for j in 0..n {
+            for i in j..n {
+                a[i + j * lda] = j as f64;
+                na[i + j * lda] = j as f64;
+            }
+        }
+    }
+
+    if diag {
+        for j in 0..n {
+            na[j + j * lda] = 1.;
+        }
+    }
+
+    unsafe {
+        dtrmv(upper, trans, diag, n, a.as_ptr(), lda, x.as_mut_ptr(), incx);
+    }
+
+    unsafe {
+        dgemv(
+            trans,
+            n,
+            n,
+            1.,
+            na.as_ptr(),
+            lda,
+            nx.as_ptr(),
+            incx,
+            0.,
+            ny.as_mut_ptr(),
+            incx,
+        );
+    }
+
+    for (i, (&nyi, &xi)) in ny.iter().zip(x.iter()).enumerate() {
+        if i % incx == 0 {
+            let expected = nyi;
+            let diff = (expected - xi).abs();
+            assert!(
+                diff == 0.0 || diff < (expected + xi) / 2.0 / 1.0e+5,
+                "expected={};xi={};upper={};trans={};diag={};index={}",
+                expected,
+                xi,
+                upper,
+                trans,
+                diag,
+                i / incx,
+            );
+        } else {
+            assert_eq!(xi, 2.);      
+        }
+    }
+}
+
 #[test]
 fn test_dgemv() {
     let lda = *SIZES.last().unwrap();
@@ -176,6 +247,23 @@ fn test_dsymv_dgemv_compare() {
         for &(incx, incy) in STRIDES.iter() {
             dsymv_driver(true, n, lda, incx, incy);
             dsymv_driver(false, n, lda, incx, incy);
+        }
+    }
+}
+
+#[test]
+fn test_dtrmv_dgemv_compare() {
+    let lda = *SIZES.last().unwrap();
+
+    for &n in SIZES.iter() {
+        for &(incx, _incy) in STRIDES.iter() {
+            for &trans in [true, false].iter() {
+                for &diag in [true, false].iter() {
+                    for &upper in [true, false].iter() {
+                        dtrmv_driver(upper, trans, diag, n, lda, incx);
+                    }
+                }
+            }
         }
     }
 }

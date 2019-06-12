@@ -91,16 +91,16 @@ pub unsafe fn dtrmv(
     if trans {
         if upper {
             if diag {
-                for j in 1..n {
+                for j in (1..n).rev() {
                     *x.add(j * incx) += crate::ddot(j, a.add(j * lda), 1, x, incx);
                 }
             } else {
-                for j in 0..n {
+                for j in (0..n).rev() {
                     *x.add(j * incx) = crate::ddot(j + 1, a.add(j * lda), 1, x, incx);
                 }
             }
         } else if diag {
-            for j in (0..n - 1).rev() {
+            for j in 0..n - 1 {
                 *x.add(j * incx) += crate::ddot(
                     n - (j + 1),
                     a.add((j + 1) + j * lda),
@@ -110,20 +110,20 @@ pub unsafe fn dtrmv(
                 );
             }
         } else {
-            for j in (0..n).rev() {
+            for j in 0..n {
                 *x.add(j * incx) = crate::ddot(n - j, a.add(j + j * lda), 1, x.add(j * incx), incx);
             }
         }
     } else if upper {
         if diag {
             for j in 1..n {
-                crate::daxpy(j - 1, *x.add(j * incx), a.add(j * lda), 1, x, incx);
+                crate::daxpy(j, *x.add(j * incx), a.add(j * lda), 1, x, incx);
             }
         } else {
             for j in 0..n {
                 let scal = *x.add(j * incx);
                 *x.add(j * incx) = 0.;
-                crate::daxpy(j, scal, a.add(j * lda), 1, x, incx);
+                crate::daxpy(j+1, scal, a.add(j * lda), 1, x, incx);
             }
         }
     } else if diag {
