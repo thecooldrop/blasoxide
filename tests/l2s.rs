@@ -222,7 +222,7 @@ fn strmv_driver(upper: bool, trans: bool, diag: bool, n: usize, lda: usize, incx
                 i / incx,
             );
         } else {
-            assert_eq!(xi, 2.);      
+            assert_eq!(xi, 2.);
         }
     }
 }

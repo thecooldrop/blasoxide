@@ -123,7 +123,7 @@ pub unsafe fn strmv(
             for j in 0..n {
                 let scal = *x.add(j * incx);
                 *x.add(j * incx) = 0.;
-                crate::saxpy(j+1, scal, a.add(j * lda), 1, x, incx);
+                crate::saxpy(j + 1, scal, a.add(j * lda), 1, x, incx);
             }
         }
     } else if diag {
