@@ -212,3 +212,41 @@ pub unsafe fn dsyr(
         }
     }
 }
+
+pub unsafe fn dsyr2(
+    upper: bool,
+    n: usize,
+    alpha: f64,
+    x: *const f64,
+    incx: usize,
+    y: *const f64,
+    incy: usize,
+    a: *mut f64,
+    lda: usize,
+) {
+    if upper {
+        for j in 0..n {
+            crate::daxpy(j + 1, alpha * *x.add(j * incx), y, incy, a.add(j * lda), 1);
+            crate::daxpy(j + 1, alpha * *y.add(j * incy), x, incx, a.add(j * lda), 1);
+        }
+    } else {
+        for j in 0..n {
+            crate::daxpy(
+                n - j,
+                alpha * *x.add(j * incx),
+                y.add(j * incy),
+                incy,
+                a.add(j + j * lda),
+                1,
+            );
+            crate::daxpy(
+                n - j,
+                alpha * *y.add(j * incy),
+                x.add(j * incx),
+                incx,
+                a.add(j + j * lda),
+                1,
+            );
+        }
+    }
+}

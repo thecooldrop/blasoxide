@@ -212,3 +212,41 @@ pub unsafe fn ssyr(
         }
     }
 }
+
+pub unsafe fn ssyr2(
+    upper: bool,
+    n: usize,
+    alpha: f32,
+    x: *const f32,
+    incx: usize,
+    y: *const f32,
+    incy: usize,
+    a: *mut f32,
+    lda: usize,
+) {
+    if upper {
+        for j in 0..n {
+            crate::saxpy(j + 1, alpha * *x.add(j * incx), y, incy, a.add(j * lda), 1);
+            crate::saxpy(j + 1, alpha * *y.add(j * incy), x, incx, a.add(j * lda), 1);
+        }
+    } else {
+        for j in 0..n {
+            crate::saxpy(
+                n - j,
+                alpha * *x.add(j * incx),
+                y.add(j * incy),
+                incy,
+                a.add(j + j * lda),
+                1,
+            );
+            crate::saxpy(
+                n - j,
+                alpha * *y.add(j * incy),
+                x.add(j * incx),
+                incx,
+                a.add(j + j * lda),
+                1,
+            );
+        }
+    }
+}
