@@ -185,3 +185,30 @@ pub unsafe fn ssymv(
         }
     }
 }
+
+pub unsafe fn ssyr(
+    upper: bool,
+    n: usize,
+    alpha: f32,
+    x: *const f32,
+    incx: usize,
+    a: *mut f32,
+    lda: usize,
+) {
+    if upper {
+        for j in 0..n {
+            crate::saxpy(j + 1, alpha * *x.add(j * incx), x, incx, a.add(j * lda), 1);
+        }
+    } else {
+        for j in 0..n {
+            crate::saxpy(
+                n - j,
+                alpha * *x.add(j * incx),
+                x.add(j * incx),
+                incx,
+                a.add(j + j * lda),
+                1,
+            );
+        }
+    }
+}

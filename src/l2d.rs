@@ -185,3 +185,30 @@ pub unsafe fn dsymv(
         }
     }
 }
+
+pub unsafe fn dsyr(
+    upper: bool,
+    n: usize,
+    alpha: f64,
+    x: *const f64,
+    incx: usize,
+    a: *mut f64,
+    lda: usize,
+) {
+    if upper {
+        for j in 0..n {
+            crate::daxpy(j + 1, alpha * *x.add(j * incx), x, incx, a.add(j * lda), 1);
+        }
+    } else {
+        for j in 0..n {
+            crate::daxpy(
+                n - j,
+                alpha * *x.add(j * incx),
+                x.add(j * incx),
+                incx,
+                a.add(j + j * lda),
+                1,
+            );
+        }
+    }
+}
