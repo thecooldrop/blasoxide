@@ -250,3 +250,19 @@ pub unsafe fn ssyr2(
         }
     }
 }
+
+pub unsafe fn sger(
+    m: usize,
+    n: usize,
+    alpha: f32,
+    x: *const f32,
+    incx: usize,
+    y: *const f32,
+    incy: usize,
+    a: *mut f32,
+    lda: usize,
+) {
+    for j in 0..n {
+        crate::saxpy(m, alpha * *y.add(j * incy), x, incx, a.add(j * lda), 1);
+    }
+}

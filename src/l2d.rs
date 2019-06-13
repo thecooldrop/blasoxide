@@ -250,3 +250,19 @@ pub unsafe fn dsyr2(
         }
     }
 }
+
+pub unsafe fn dger(
+    m: usize,
+    n: usize,
+    alpha: f64,
+    x: *const f64,
+    incx: usize,
+    y: *const f64,
+    incy: usize,
+    a: *mut f64,
+    lda: usize,
+) {
+    for j in 0..n {
+        crate::daxpy(m, alpha * *y.add(j * incy), x, incx, a.add(j * lda), 1);
+    }
+}
