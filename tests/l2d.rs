@@ -237,7 +237,7 @@ fn dsyr_driver(upper: bool, n: usize, incx: usize, lda: usize) {
 
     if upper {
         for j in 0..n {
-            for i in 0..j+1 {
+            for i in 0..j + 1 {
                 a[i + j * lda] = j as f64;
             }
         }
@@ -255,13 +255,11 @@ fn dsyr_driver(upper: bool, n: usize, incx: usize, lda: usize) {
 
     if upper {
         for j in 0..n {
-            for i in 0..j+1 {
+            for i in 0..j + 1 {
                 let expected = j as f64 + x[j * incx] * x[i * incx] * 7.;
                 let got = a[i + j * lda];
                 let diff = (expected - got).abs();
-                assert!(
-                    diff == 0.0 || diff < (expected + got) / 2.0 / 1.0e+6,
-                );
+                assert!(diff == 0.0 || diff < (expected + got) / 2.0 / 1.0e+6,);
             }
         }
     } else {
@@ -270,9 +268,7 @@ fn dsyr_driver(upper: bool, n: usize, incx: usize, lda: usize) {
                 let expected = j as f64 + x[j * incx] * x[i * incx] * 7.;
                 let got = a[i + j * lda];
                 let diff = (expected - got).abs();
-                assert!(
-                    diff == 0.0 || diff < (expected + got) / 2.0 / 1.0e+6,
-                );
+                assert!(diff == 0.0 || diff < (expected + got) / 2.0 / 1.0e+6,);
             }
         }
     }
