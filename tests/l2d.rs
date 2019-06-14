@@ -227,6 +227,69 @@ fn dtrmv_driver(upper: bool, trans: bool, diag: bool, n: usize, lda: usize, incx
     }
 }
 
+fn dsyr_driver(upper: bool, n: usize, incx: usize, lda: usize) {
+    let mut a = vec![31.; n * lda];
+    let mut x = vec![3.; n * incx];
+
+    for i in 0..n {
+        x[incx * i] = i as f64;
+    }
+
+    if upper {
+        for j in 0..n {
+            for i in 0..j+1 {
+                a[i + j * lda] = j as f64;
+            }
+        }
+    } else {
+        for j in 0..n {
+            for i in j..n {
+                a[i + j * lda] = j as f64;
+            }
+        }
+    }
+
+    unsafe {
+        dsyr(upper, n, 7., x.as_ptr(), incx, a.as_mut_ptr(), lda);
+    }
+
+    if upper {
+        for j in 0..n {
+            for i in 0..j+1 {
+                let expected = j as f64 + x[j * incx] * x[i * incx] * 7.;
+                let got = a[i + j * lda];
+                let diff = (expected - got).abs();
+                assert!(
+                    diff == 0.0 || diff < (expected + got) / 2.0 / 1.0e+6,
+                );
+            }
+        }
+    } else {
+        for j in 0..n {
+            for i in j..n {
+                let expected = j as f64 + x[j * incx] * x[i * incx] * 7.;
+                let got = a[i + j * lda];
+                let diff = (expected - got).abs();
+                assert!(
+                    diff == 0.0 || diff < (expected + got) / 2.0 / 1.0e+6,
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn test_dsyr() {
+    let lda = *SIZES.last().unwrap();
+
+    for &n in SIZES.iter() {
+        for &(incx, _incy) in STRIDES.iter() {
+            dsyr_driver(false, n, incx, lda);
+            dsyr_driver(true, n, incx, lda);
+        }
+    }
+}
+
 #[test]
 fn test_dgemv() {
     let lda = *SIZES.last().unwrap();
