@@ -18,7 +18,7 @@ pub unsafe fn dgemm(
 ) {
     const MC: usize = 144;
     const KC: usize = 256;
-    const NB: usize = 2048;
+    const NB: usize = 1024;
 
     let mut packed_a = Vec::with_capacity(MC * KC);
     let mut packed_b = Vec::with_capacity(KC * NB);
