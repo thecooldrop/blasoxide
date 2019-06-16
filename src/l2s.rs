@@ -290,5 +290,19 @@ pub unsafe fn strsv(
                 ))
                 / *a.add(j + j * lda);
         }
+    } else {
+        for j in 0..n {
+            let lambda = *a.add(j + j * lda);
+            let beta = *x.add(j * incx) / lambda;
+            *x.add(j * incx) /= lambda;
+            crate::saxpy(
+                n - (j + 1),
+                -beta,
+                a.add(j + 1 + j * lda),
+                1,
+                x.add((j + 1) * incx),
+                incx,
+            );
+        }
     }
 }
