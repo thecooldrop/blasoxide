@@ -266,3 +266,29 @@ pub unsafe fn sger(
         crate::saxpy(m, alpha * *y.add(j * incy), x, incx, a.add(j * lda), 1);
     }
 }
+
+pub unsafe fn strsv(
+    upper: bool,
+    _trans: bool,
+    _diag: bool,
+    n: usize,
+    a: *const f32,
+    lda: usize,
+    x: *mut f32,
+    incx: usize,
+) {
+    if upper {
+        for j in (0..n).rev() {
+            let beta = *x.add(j * incx);
+            *x.add(j * incx) = (beta
+                - crate::sdot(
+                    n - (j + 1),
+                    x.add((j + 1) * incx),
+                    incx,
+                    a.add(j + 1 + (j + 1) * lda),
+                    1,
+                ))
+                / *a.add(j + j * lda);
+        }
+    }
+}
