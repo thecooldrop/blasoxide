@@ -1,3 +1,8 @@
+/// Returns coefficients of 2x2 rotation matrix, such that 
+/// when it is multiplied with a 2x1 vector consisting of coefficients
+/// given as arguments to function results in a 2x1 vector which has
+/// the length of input vector as first coefficient and zero as second coefficient
+/// More information can be found in Wikipedia under article Givens rotation.
 pub fn drotg(a: f64, b: f64) -> (f64, f64, f64, f64) {
     if a == 0.0 && b == 0.0 {
         return (0.0, 0.0, 1.0, 0.0);
