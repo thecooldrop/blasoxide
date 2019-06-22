@@ -109,8 +109,7 @@ pub unsafe fn sgemm(
                         alpha,
                         a.0.add(i),
                         lda,
-                        b.0.add(j * ldb),
-                        ldb,
+                        packed_b.0.add(j * k),
                         beta,
                         c.0.add(i + j * ldc),
                         ldc,
@@ -177,16 +176,11 @@ pub unsafe fn sgemm(
         alpha: f32,
         mut a: *const f32,
         lda: usize,
-        b: *const f32,
-        ldb: usize,
+        mut pb: *const f32,
         beta: f32,
         c: *mut f32,
         ldc: usize,
     ) {
-        let mut bptr0 = b;
-        let mut bptr1 = b.add(ldb);
-        let mut bptr2 = b.add(ldb * 2);
-        let mut bptr3 = b.add(ldb * 3);
 
         let cptr0 = c;
         let cptr1 = c.add(ldc);
@@ -200,10 +194,10 @@ pub unsafe fn sgemm(
 
         for _ in 0..k {
             let a0_reg = *a * alpha;
-            let bp0reg = *bptr0;
-            let bp1reg = *bptr1;
-            let bp2reg = *bptr2;
-            let bp3reg = *bptr3;
+            let bp0reg = *pb;
+            let bp1reg = *pb.add(1);
+            let bp2reg = *pb.add(2);
+            let bp3reg = *pb.add(3);
 
             c0_reg += a0_reg * bp0reg;
             c1_reg += a0_reg * bp1reg;
@@ -211,10 +205,7 @@ pub unsafe fn sgemm(
             c3_reg += a0_reg * bp3reg;
 
             a = a.add(lda);
-            bptr0 = bptr0.add(1);
-            bptr1 = bptr1.add(1);
-            bptr2 = bptr2.add(1);
-            bptr3 = bptr3.add(1);
+            pb = pb.add(4);
         }
 
         *cptr0 = c0_reg;
