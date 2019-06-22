@@ -15,8 +15,11 @@ fn dgemm_driver(m: usize, n: usize, k: usize, lda: usize, ldb: usize, ldc: usize
     let b = vec![3.; n * ldb];
     let mut c = vec![5.; n * ldc];
 
+    let context = Context::new();
+
     unsafe {
         dgemm(
+            &context,
             false,
             false,
             m,

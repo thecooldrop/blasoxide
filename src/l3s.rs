@@ -1,5 +1,5 @@
-use crate::util::{SSend, SSendMut};
 use crate::context::Context;
+use crate::util::{SSend, SSendMut};
 
 pub unsafe fn sgemm(
     context: &Context,
@@ -92,29 +92,29 @@ pub unsafe fn sgemm(
         });
 
         context.execute(0, n_main, 4, move |j| {
-                for i in (0..m_main).step_by(16) {
-                    crate::sgemm_16x4_packed(
-                        k,
-                        packed_a.0.add(i * k),
-                        packed_b.0.add(j * k),
-                        beta,
-                        c.0.add(i + j * ldc),
-                        ldc,
-                    );
-                }
+            for i in (0..m_main).step_by(16) {
+                crate::sgemm_16x4_packed(
+                    k,
+                    packed_a.0.add(i * k),
+                    packed_b.0.add(j * k),
+                    beta,
+                    c.0.add(i + j * ldc),
+                    ldc,
+                );
+            }
 
-                for i in m_main..m {
-                    add_dot_1x4(
-                        k,
-                        alpha,
-                        a.0.add(i),
-                        lda,
-                        packed_b.0.add(j * k),
-                        beta,
-                        c.0.add(i + j * ldc),
-                        ldc,
-                    );
-                }
+            for i in m_main..m {
+                add_dot_1x4(
+                    k,
+                    alpha,
+                    a.0.add(i),
+                    lda,
+                    packed_b.0.add(j * k),
+                    beta,
+                    c.0.add(i + j * ldc),
+                    ldc,
+                );
+            }
         });
 
         context.execute(n_main, n, 1, move |j| {
@@ -181,7 +181,6 @@ pub unsafe fn sgemm(
         c: *mut f32,
         ldc: usize,
     ) {
-
         let cptr0 = c;
         let cptr1 = c.add(ldc);
         let cptr2 = c.add(2 * ldc);

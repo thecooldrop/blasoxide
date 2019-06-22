@@ -1,30 +1,3 @@
-/// Returns coefficients of 2x2 rotation matrix, such that
-/// when it is multiplied with a 2x1 vector consisting of coefficients
-/// given as arguments to function results in a 2x1 vector which has
-/// the length of input vector as first coefficient and zero as second coefficient
-/// More information can be found in Wikipedia under article Givens rotation.
-pub fn drotg(a: f64, b: f64) -> (f64, f64, f64, f64) {
-    if a == 0.0 && b == 0.0 {
-        return (0.0, 0.0, 1.0, 0.0);
-    }
-    let h = a.hypot(b);
-    let r = if a.abs() > b.abs() {
-        h.copysign(a)
-    } else {
-        h.copysign(b)
-    };
-    let c = a / r;
-    let s = b / r;
-    let z = if a.abs() > b.abs() {
-        s
-    } else if c != 0.0 {
-        1.0 / c
-    } else {
-        1.0
-    };
-    (r, z, c, s)
-}
-
 pub unsafe fn drot(
     n: usize,
     mut x: *mut f64,
@@ -182,18 +155,4 @@ pub unsafe fn dasum(n: usize, mut x: *const f64, incx: usize) -> f64 {
         x = x.add(incx);
     }
     acc
-}
-
-pub unsafe fn idamax(n: usize, mut x: *const f64, incx: usize) -> usize {
-    let mut max = 0.0;
-    let mut imax = 0;
-    for i in 0..n {
-        let xi = (*x).abs();
-        if xi > max {
-            max = xi;
-            imax = i;
-        }
-        x = x.add(incx);
-    }
-    imax
 }

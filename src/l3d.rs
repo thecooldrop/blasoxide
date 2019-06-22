@@ -1,6 +1,8 @@
+use crate::context::Context;
 use crate::util::{DSend, DSendMut};
 
 pub unsafe fn dgemm(
+    context: &Context,
     _transa: bool,
     _transb: bool,
     m: usize,
@@ -15,24 +17,25 @@ pub unsafe fn dgemm(
     c: *mut f64,
     ldc: usize,
 ) {
-    const MC: usize = 144;
-    const KC: usize = 256;
-    const NB: usize = 1024;
+    let mc = context.dmc();
+    let kc = context.dkc();
+    let nc = context.dnc();
 
-    let mut packed_a = Vec::with_capacity(MC * KC);
-    let mut packed_b = Vec::with_capacity(KC * NB);
+    let pa = context.dpa();
+    let pb = context.dpb();
 
-    for j in (0..n).step_by(NB) {
-        let jb = std::cmp::min(n - j, NB);
+    for j in (0..n).step_by(nc) {
+        let js = std::cmp::min(n - j, nc);
         let mut beta_scale = beta;
-        for p in (0..k).step_by(KC) {
-            let pb = std::cmp::min(k - p, KC);
-            for i in (0..m).step_by(MC) {
-                let ib = std::cmp::min(m - i, MC);
+        for p in (0..k).step_by(kc) {
+            let ps = std::cmp::min(k - p, kc);
+            for i in (0..m).step_by(mc) {
+                let is = std::cmp::min(m - i, mc);
                 inner_kernel(
-                    ib,
-                    jb,
-                    pb,
+                    context,
+                    is,
+                    js,
+                    ps,
                     alpha,
                     a.add(i + p * lda),
                     lda,
@@ -41,8 +44,8 @@ pub unsafe fn dgemm(
                     beta_scale,
                     c.add(i + j * ldc),
                     ldc,
-                    packed_a.as_mut_ptr(),
-                    packed_b.as_mut_ptr(),
+                    pa,
+                    pb,
                     i == 0,
                 );
             }
@@ -51,6 +54,7 @@ pub unsafe fn dgemm(
     }
 
     unsafe fn inner_kernel(
+        context: &Context,
         m: usize,
         n: usize,
         k: usize,
@@ -78,49 +82,42 @@ pub unsafe fn dgemm(
         let packed_b = DSendMut(packed_b);
 
         if first_time {
-            (0..n_main)
-                .step_by(4)
-                .for_each(move |j| {
-                    pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
-                });
+            context.execute(0, n_main, 4, move |j| {
+                pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
+            });
         }
 
-        (0..m_main)
-            .step_by(8)
-            .for_each(move |i| {
-                crate::d_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
-            });
+        context.execute(0, m_main, 8, move |i| {
+            crate::d_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
+        });
 
-        (0..n_main)
-            .step_by(4)
-            .for_each(move |j| {
-                for i in (0..m_main).step_by(8) {
-                    crate::dgemm_8x4_packed(
-                        k,
-                        packed_a.0.add(i * k),
-                        packed_b.0.add(j * k),
-                        beta,
-                        c.0.add(i + j * ldc),
-                        ldc,
-                    );
-                }
+        context.execute(0, n_main, 4, move |j| {
+            for i in (0..m_main).step_by(8) {
+                crate::dgemm_8x4_packed(
+                    k,
+                    packed_a.0.add(i * k),
+                    packed_b.0.add(j * k),
+                    beta,
+                    c.0.add(i + j * ldc),
+                    ldc,
+                );
+            }
 
-                for i in m_main..m {
-                    add_dot_1x4(
-                        k,
-                        alpha,
-                        a.0.add(i),
-                        lda,
-                        b.0.add(j * ldb),
-                        ldb,
-                        beta,
-                        c.0.add(i + j * ldc),
-                        ldc,
-                    );
-                }
-            });
+            for i in m_main..m {
+                add_dot_1x4(
+                    k,
+                    alpha,
+                    a.0.add(i),
+                    lda,
+                    packed_b.0.add(j * k),
+                    beta,
+                    c.0.add(i + j * ldc),
+                    ldc,
+                );
+            }
+        });
 
-        for j in n_main..n {
+        context.execute(n_main, n, 1, move |j| {
             for i in 0..m {
                 add_dot_1x1(
                     k,
@@ -132,7 +129,7 @@ pub unsafe fn dgemm(
                     c.0.add(i + j * ldc),
                 );
             }
-        }
+        });
     }
 
     unsafe fn pack_b(k: usize, b: *const f64, ldb: usize, mut packed_b: *mut f64) {
@@ -179,17 +176,11 @@ pub unsafe fn dgemm(
         alpha: f64,
         mut a: *const f64,
         lda: usize,
-        b: *const f64,
-        ldb: usize,
+        mut pb: *const f64,
         beta: f64,
         c: *mut f64,
         ldc: usize,
     ) {
-        let mut bptr0 = b;
-        let mut bptr1 = b.add(ldb);
-        let mut bptr2 = b.add(ldb * 2);
-        let mut bptr3 = b.add(ldb * 3);
-
         let cptr0 = c;
         let cptr1 = c.add(ldc);
         let cptr2 = c.add(2 * ldc);
@@ -202,10 +193,10 @@ pub unsafe fn dgemm(
 
         for _ in 0..k {
             let a0_reg = *a * alpha;
-            let bp0reg = *bptr0;
-            let bp1reg = *bptr1;
-            let bp2reg = *bptr2;
-            let bp3reg = *bptr3;
+            let bp0reg = *pb;
+            let bp1reg = *pb.add(1);
+            let bp2reg = *pb.add(2);
+            let bp3reg = *pb.add(3);
 
             c0_reg += a0_reg * bp0reg;
             c1_reg += a0_reg * bp1reg;
@@ -213,10 +204,7 @@ pub unsafe fn dgemm(
             c3_reg += a0_reg * bp3reg;
 
             a = a.add(lda);
-            bptr0 = bptr0.add(1);
-            bptr1 = bptr1.add(1);
-            bptr2 = bptr2.add(1);
-            bptr3 = bptr3.add(1);
+            pb = pb.add(4);
         }
 
         *cptr0 = c0_reg;

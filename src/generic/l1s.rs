@@ -1,30 +1,3 @@
-/// Returns coefficients of 2x2 rotation matrix, such that
-/// when it is multiplied with a 2x1 vector consisting of coefficients
-/// given as arguments to function results in a 2x1 vector which has
-/// the length of input vector as first coefficient and zero as second coefficient
-/// More information can be found in Wikipedia under article Givens rotation.
-pub fn srotg(a: f32, b: f32) -> (f32, f32, f32, f32) {
-    if a == 0.0 && b == 0.0 {
-        return (0.0, 0.0, 1.0, 0.0);
-    }
-    let h = a.hypot(b);
-    let r = if a.abs() > b.abs() {
-        h.copysign(a)
-    } else {
-        h.copysign(b)
-    };
-    let c = a / r;
-    let s = b / r;
-    let z = if a.abs() > b.abs() {
-        s
-    } else if c != 0.0 {
-        1.0 / c
-    } else {
-        1.0
-    };
-    (r, z, c, s)
-}
-
 pub unsafe fn srot(
     n: usize,
     mut x: *mut f32,
@@ -151,23 +124,6 @@ pub unsafe fn sdot(
     acc
 }
 
-pub unsafe fn sdsdot(
-    n: usize,
-    b: f32,
-    mut x: *const f32,
-    incx: usize,
-    mut y: *const f32,
-    incy: usize,
-) -> f32 {
-    let mut acc: f64 = f64::from(b);
-    for _ in 0..n {
-        acc += f64::from(*x) * f64::from(*y);
-        x = x.add(incx);
-        y = y.add(incy);
-    }
-    acc as f32
-}
-
 pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: usize) -> f32 {
     #[cfg(target_arch = "x86_64")]
     {
@@ -199,18 +155,4 @@ pub unsafe fn sasum(n: usize, mut x: *const f32, incx: usize) -> f32 {
         x = x.add(incx);
     }
     acc
-}
-
-pub unsafe fn isamax(n: usize, mut x: *const f32, incx: usize) -> usize {
-    let mut max = 0.0;
-    let mut imax = 0;
-    for i in 0..n {
-        let xi = (*x).abs();
-        if xi > max {
-            max = xi;
-            imax = i;
-        }
-        x = x.add(incx);
-    }
-    imax
 }
