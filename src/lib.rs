@@ -37,7 +37,6 @@ pub use l3s::*;
 mod l3d;
 pub use l3d::*;
 
-
 /// Returns coefficients of 2x2 rotation matrix, such that
 /// when it is multiplied with a 2x1 vector consisting of coefficients
 /// given as arguments to function results in a 2x1 vector which has
