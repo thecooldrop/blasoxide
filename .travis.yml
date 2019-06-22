@@ -1,12 +1,22 @@
 language: rust
 dist: trusty
-sudo: true
 
 os:
 - linux
+- osx
+- windows
 
 rust:
   - stable
+  - beta
+  - nightly
+
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+
+cache: cargo
 
 install:
   - rustup component add rustfmt
@@ -16,3 +26,4 @@ script:
   - cargo fmt -- --check
   - cargo clippy
   - cargo test --release
+  - cargo build
