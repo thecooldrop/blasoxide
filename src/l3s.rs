@@ -16,9 +16,9 @@ pub unsafe fn sgemm(
     c: *mut f32,
     ldc: usize,
 ) {
-    const MC: usize = 288;
+    const MC: usize = 512;
     const KC: usize = 512;
-    const NB: usize = 2048;
+    const NB: usize = 1024;
 
     let mut packed_a = Vec::with_capacity(MC * KC);
     let mut packed_b = Vec::with_capacity(KC * NB);
