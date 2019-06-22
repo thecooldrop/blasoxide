@@ -1,5 +1,4 @@
 use crate::util::{DSend, DSendMut};
-use rayon::prelude::*;
 
 pub unsafe fn dgemm(
     _transa: bool,
@@ -81,26 +80,20 @@ pub unsafe fn dgemm(
         if first_time {
             (0..n_main)
                 .step_by(4)
-                .collect::<Vec<_>>()
-                .par_iter()
-                .for_each(move |&j| {
+                .for_each(move |j| {
                     pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
                 });
         }
 
         (0..m_main)
             .step_by(8)
-            .collect::<Vec<_>>()
-            .par_iter()
-            .for_each(move |&i| {
+            .for_each(move |i| {
                 crate::d_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
             });
 
         (0..n_main)
             .step_by(4)
-            .collect::<Vec<_>>()
-            .par_iter()
-            .for_each(move |&j| {
+            .for_each(move |j| {
                 for i in (0..m_main).step_by(8) {
                     crate::dgemm_8x4_packed(
                         k,

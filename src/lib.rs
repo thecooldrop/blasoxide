@@ -1,7 +1,12 @@
-#![deny(warnings)]
 #![allow(clippy::many_single_char_names)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::float_cmp)]
+
+mod aligned_alloc;
+
+mod context;
+
+pub use context::Context;
 
 #[macro_use]
 mod util;
@@ -9,7 +14,12 @@ mod util;
 #[cfg(target_arch = "x86_64")]
 mod fma;
 
+#[cfg(all(target_arch="x86_64", target_feature="fma"))]
+pub use fma::*;
+
+#[cfg(not(all(target_arch="x86_64", target_feature="fma")))]
 mod generic;
+#[cfg(not(all(target_arch="x86_64", target_feature="fma")))]
 pub use generic::*;
 
 mod l2s;

@@ -1,7 +1,8 @@
 use crate::util::{SSend, SSendMut};
-use rayon::prelude::*;
+use crate::context::Context;
 
 pub unsafe fn sgemm(
+    context: &Context,
     _transa: bool,
     _transb: bool,
     m: usize,
@@ -16,24 +17,25 @@ pub unsafe fn sgemm(
     c: *mut f32,
     ldc: usize,
 ) {
-    const MC: usize = 512;
-    const KC: usize = 512;
-    const NB: usize = 1024;
+    let mc = context.smc();
+    let kc = context.skc();
+    let nc = context.snc();
 
-    let mut packed_a = Vec::with_capacity(MC * KC);
-    let mut packed_b = Vec::with_capacity(KC * NB);
+    let pa = context.spa();
+    let pb = context.spb();
 
-    for j in (0..n).step_by(NB) {
-        let jb = std::cmp::min(n - j, NB);
+    for j in (0..n).step_by(nc) {
+        let js = std::cmp::min(n - j, nc);
         let mut beta_scale = beta;
-        for p in (0..k).step_by(KC) {
-            let pb = std::cmp::min(k - p, KC);
-            for i in (0..m).step_by(MC) {
-                let ib = std::cmp::min(m - i, MC);
+        for p in (0..k).step_by(kc) {
+            let ps = std::cmp::min(k - p, kc);
+            for i in (0..m).step_by(mc) {
+                let is = std::cmp::min(m - i, mc);
                 inner_kernel(
-                    ib,
-                    jb,
-                    pb,
+                    context,
+                    is,
+                    js,
+                    ps,
                     alpha,
                     a.add(i + p * lda),
                     lda,
@@ -42,8 +44,8 @@ pub unsafe fn sgemm(
                     beta_scale,
                     c.add(i + j * ldc),
                     ldc,
-                    packed_a.as_mut_ptr(),
-                    packed_b.as_mut_ptr(),
+                    pa,
+                    pb,
                     i == 0,
                 );
             }
@@ -52,6 +54,7 @@ pub unsafe fn sgemm(
     }
 
     unsafe fn inner_kernel(
+        context: &Context,
         m: usize,
         n: usize,
         k: usize,
@@ -79,28 +82,16 @@ pub unsafe fn sgemm(
         let packed_b = SSendMut(packed_b);
 
         if first_time {
-            (0..n_main)
-                .step_by(4)
-                .collect::<Vec<_>>()
-                .par_iter()
-                .for_each(move |&j| {
-                    pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
-                });
+            context.execute(0, n_main, 4, move |j| {
+                pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
+            });
         }
 
-        (0..m_main)
-            .step_by(16)
-            .collect::<Vec<_>>()
-            .par_iter()
-            .for_each(move |&i| {
-                crate::s_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
-            });
+        context.execute(0, m_main, 16, move |i| {
+            crate::s_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
+        });
 
-        (0..n_main)
-            .step_by(4)
-            .collect::<Vec<_>>()
-            .par_iter()
-            .for_each(move |&j| {
+        context.execute(0, n_main, 4, move |j| {
                 for i in (0..m_main).step_by(16) {
                     crate::sgemm_16x4_packed(
                         k,
@@ -125,9 +116,9 @@ pub unsafe fn sgemm(
                         ldc,
                     );
                 }
-            });
+        });
 
-        for j in n_main..n {
+        context.execute(n_main, n, 1, move |j| {
             for i in 0..m {
                 add_dot_1x1(
                     k,
@@ -139,7 +130,7 @@ pub unsafe fn sgemm(
                     c.0.add(i + j * ldc),
                 );
             }
-        }
+        });
     }
 
     unsafe fn pack_b(k: usize, b: *const f32, ldb: usize, mut packed_b: *mut f32) {

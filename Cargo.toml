@@ -11,4 +11,4 @@ categories = ["science"]
 license = "MIT"
 
 [dependencies]
-rayon = "1.0.3"
+threadpool = "1.7.1"

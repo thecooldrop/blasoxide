@@ -12,8 +12,11 @@ fn sgemm_driver(m: usize, n: usize, k: usize, bencher: &mut Bencher) {
     let b = vec![3.; k * n];
     let mut c = vec![5.; m * n];
 
+    let context = Context::new();
+
     bencher.iter(|| unsafe {
         sgemm(
+            &context,
             false,
             false,
             m,
