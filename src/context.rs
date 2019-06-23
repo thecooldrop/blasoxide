@@ -97,26 +97,25 @@ impl Context {
         let len = end - start;
         let num_steps = len / step;
 
-        let left_steps = num_steps % thread_count;
+        let mut left_steps = num_steps % thread_count;
         let main_steps = num_steps - left_steps;
 
         let job_size = main_steps / thread_count;
 
-        let mut job_bins = vec![job_size; thread_count];
+        let mut prev_end = 0;
 
-        for item in job_bins.iter_mut().take(left_steps) {
-            *item += 1;
-        }
-
-        let mut job_start = 0;
-
-        for bin in job_bins {
+        for _ in 0..thread_count {
+            let mut now_end = prev_end + job_size;
+            if left_steps > 0 {
+                now_end += 1;
+                left_steps -= 1;
+            }
             self.thread_pool.execute(move || {
-                for j in job_start..job_start + bin {
+                for j in prev_end..now_end {
                     f(start + j * step);
                 }
             });
-            job_start += bin;
+            prev_end = now_end
         }
 
         self.thread_pool.join();
