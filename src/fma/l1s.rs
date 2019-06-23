@@ -240,7 +240,7 @@ pub unsafe fn snrm2(n: usize, mut x: *const f32, incx: usize) -> f32 {
 pub unsafe fn sasum(n: usize, mut x: *const f32, incx: usize) -> f32 {
     if incx == 1 {
         let mut acc = _mm256_setzero_ps();
-        let mask = _mm256_broadcast_ss(&*(&SABS_MASK as *const u32 as *const f32));
+        let mask = _mm256_broadcast_ss(&f32::from_bits(SABS_MASK));
         for _ in 0..n / STEP {
             unroll4!({
                 acc = _mm256_add_ps(_mm256_and_ps(mask, _mm256_loadu_ps(x)), acc);

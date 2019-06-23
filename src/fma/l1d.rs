@@ -240,7 +240,7 @@ pub unsafe fn dnrm2(n: usize, mut x: *const f64, incx: usize) -> f64 {
 pub unsafe fn dasum(n: usize, mut x: *const f64, incx: usize) -> f64 {
     if incx == 1 {
         let mut acc = _mm256_setzero_pd();
-        let mask = _mm256_broadcast_sd(&*(&DABS_MASK as *const u64 as *const f64));
+        let mask = _mm256_broadcast_sd(&f64::from_bits(DABS_MASK));
         for _ in 0..n / STEP {
             unroll4!({
                 acc = _mm256_add_pd(_mm256_and_pd(mask, _mm256_loadu_pd(x)), acc);
