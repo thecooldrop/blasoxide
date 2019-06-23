@@ -1,5 +1,7 @@
 use crate::context::Context;
-use crate::util::{SSend, SSendMut};
+use crate::kernels::{sgemm_pa, sgemm_pb, sgemm_sup0, sgemm_sup1, sgemm_ukr};
+use crate::kernels::{SMR as MR, SNR as NR};
+use crate::send::{SSend, SSendMut};
 
 pub unsafe fn sgemm(
     context: &Context,
@@ -31,7 +33,7 @@ pub unsafe fn sgemm(
             let ps = std::cmp::min(k - p, kc);
             for i in (0..m).step_by(mc) {
                 let is = std::cmp::min(m - i, mc);
-                inner_kernel(
+                sgemm_macrokernel(
                     context,
                     is,
                     js,
@@ -52,164 +54,99 @@ pub unsafe fn sgemm(
             beta_scale = 1.0;
         }
     }
+}
 
-    unsafe fn inner_kernel(
-        context: &Context,
-        m: usize,
-        n: usize,
-        k: usize,
-        alpha: f32,
-        a: *const f32,
-        lda: usize,
-        b: *const f32,
-        ldb: usize,
-        beta: f32,
-        c: *mut f32,
-        ldc: usize,
-        packed_a: *mut f32,
-        packed_b: *mut f32,
-        first_time: bool,
-    ) {
-        let n_left = n % 4;
-        let n_main = n - n_left;
-        let m_left = m % 16;
-        let m_main = m - m_left;
+unsafe fn sgemm_macrokernel(
+    context: &Context,
+    m: usize,
+    n: usize,
+    k: usize,
+    alpha: f32,
+    a: *const f32,
+    lda: usize,
+    b: *const f32,
+    ldb: usize,
+    beta: f32,
+    c: *mut f32,
+    ldc: usize,
+    pa: *mut f32,
+    pb: *mut f32,
+    first_time: bool,
+) {
+    let n_left = n % NR;
+    let n_main = n - n_left;
+    let m_left = m % MR;
+    let m_main = m - m_left;
 
-        let a = SSend(a);
-        let b = SSend(b);
-        let c = SSendMut(c);
-        let packed_a = SSendMut(packed_a);
-        let packed_b = SSendMut(packed_b);
+    let a = SSend(a);
+    let b = SSend(b);
+    let c = SSendMut(c);
+    let pa = SSendMut(pa);
+    let pb = SSendMut(pb);
 
-        if first_time {
-            context.execute(0, n_main, 4, move |j| {
-                pack_b(k, b.0.add(j * ldb), ldb, packed_b.0.add(j * k));
-            });
-        }
-
-        context.execute(0, m_main, 16, move |i| {
-            crate::s_pack_a(k, alpha, a.0.add(i), lda, packed_a.0.add(i * k));
-        });
-
-        context.execute(0, n_main, 4, move |j| {
-            for i in (0..m_main).step_by(16) {
-                crate::sgemm_16x4_packed(
-                    k,
-                    packed_a.0.add(i * k),
-                    packed_b.0.add(j * k),
-                    beta,
-                    c.0.add(i + j * ldc),
-                    ldc,
-                );
-            }
-
-            for i in m_main..m {
-                add_dot_1x4(
-                    k,
-                    alpha,
-                    a.0.add(i),
-                    lda,
-                    packed_b.0.add(j * k),
-                    beta,
-                    c.0.add(i + j * ldc),
-                    ldc,
-                );
-            }
-        });
-
-        context.execute(n_main, n, 1, move |j| {
-            for i in 0..m {
-                add_dot_1x1(
-                    k,
-                    alpha,
-                    a.0.add(i),
-                    lda,
-                    b.0.add(j * ldb),
-                    beta,
-                    c.0.add(i + j * ldc),
-                );
-            }
+    if first_time {
+        context.execute(0, n_main, NR, move |j| {
+            sgemm_pb(k, b.0.add(j * ldb), ldb, pb.0.add(j * k));
         });
     }
 
-    unsafe fn pack_b(k: usize, b: *const f32, ldb: usize, mut packed_b: *mut f32) {
-        let mut bptr0 = b;
-        let mut bptr1 = b.add(ldb);
-        let mut bptr2 = b.add(ldb * 2);
-        let mut bptr3 = b.add(ldb * 3);
+    context.execute(0, m_main, MR, move |i| {
+        sgemm_pa(k, a.0.add(i), lda, pa.0.add(i * k));
+    });
 
-        for _ in 0..k {
-            *packed_b = *bptr0;
-            *packed_b.add(1) = *bptr1;
-            *packed_b.add(2) = *bptr2;
-            *packed_b.add(3) = *bptr3;
-
-            packed_b = packed_b.add(4);
-            bptr0 = bptr0.add(1);
-            bptr1 = bptr1.add(1);
-            bptr2 = bptr2.add(1);
-            bptr3 = bptr3.add(1);
-        }
-    }
-
-    unsafe fn add_dot_1x1(
-        k: usize,
-        alpha: f32,
-        mut a: *const f32,
-        lda: usize,
-        mut b: *const f32,
-        beta: f32,
-        c: *mut f32,
-    ) {
-        let mut c0reg = *c * beta;
-        for _ in 0..k {
-            c0reg += *a * *b * alpha;
-
-            a = a.add(lda);
-            b = b.add(1);
-        }
-        *c = c0reg;
-    }
-
-    unsafe fn add_dot_1x4(
-        k: usize,
-        alpha: f32,
-        mut a: *const f32,
-        lda: usize,
-        mut pb: *const f32,
-        beta: f32,
-        c: *mut f32,
-        ldc: usize,
-    ) {
-        let cptr0 = c;
-        let cptr1 = c.add(ldc);
-        let cptr2 = c.add(2 * ldc);
-        let cptr3 = c.add(3 * ldc);
-
-        let mut c0_reg = *cptr0 * beta;
-        let mut c1_reg = *cptr1 * beta;
-        let mut c2_reg = *cptr2 * beta;
-        let mut c3_reg = *cptr3 * beta;
-
-        for _ in 0..k {
-            let a0_reg = *a * alpha;
-            let bp0reg = *pb;
-            let bp1reg = *pb.add(1);
-            let bp2reg = *pb.add(2);
-            let bp3reg = *pb.add(3);
-
-            c0_reg += a0_reg * bp0reg;
-            c1_reg += a0_reg * bp1reg;
-            c2_reg += a0_reg * bp2reg;
-            c3_reg += a0_reg * bp3reg;
-
-            a = a.add(lda);
-            pb = pb.add(4);
+    context.execute(0, n_main, NR, move |j| {
+        for i in (0..m_main).step_by(MR) {
+            sgemm_ukr(
+                k,
+                alpha,
+                pa.0.add(i * k),
+                pb.0.add(j * k),
+                beta,
+                c.0.add(i + j * ldc),
+                ldc,
+            );
         }
 
-        *cptr0 = c0_reg;
-        *cptr1 = c1_reg;
-        *cptr2 = c2_reg;
-        *cptr3 = c3_reg;
-    }
+        for i in m_main..m {
+            sgemm_sup1(
+                k,
+                alpha,
+                a.0.add(i),
+                lda,
+                pb.0.add(j * k),
+                beta,
+                c.0.add(i + j * ldc),
+                ldc,
+            );
+        }
+    });
+
+    context.execute(n_main, n, 1, move |j| {
+        for i in (0..m_main).step_by(MR) {
+            sgemm_sup0(
+                k,
+                alpha,
+                pa.0.add(i * k),
+                b.0.add(j * ldb),
+                beta,
+                c.0.add(i + j * ldc),
+            );
+        }
+
+        for i in m_main..m {
+            let mut elem = 0.0;
+
+            for p in 0..k {
+                elem += *a.0.add(i + p * lda) * *b.0.add(p + j * ldb);
+            }
+
+            elem *= alpha;
+
+            if beta != 0.0 {
+                elem += beta * *c.0.add(i + j * ldc);
+            }
+
+            *c.0.add(i + j * ldc) = elem;
+        }
+    });
 }

@@ -8,9 +8,9 @@ use blasoxide::*;
 use test::Bencher;
 
 fn sgemm_driver(m: usize, n: usize, k: usize, bencher: &mut Bencher) {
-    let a = vec![2.; m * k];
-    let b = vec![3.; k * n];
-    let mut c = vec![5.; m * n];
+    let a = aligned_alloc::Alloc::new(m * k * std::mem::size_of::<f32>());
+    let b = aligned_alloc::Alloc::new(n * k * std::mem::size_of::<f32>());
+    let c = aligned_alloc::Alloc::new(m * n * std::mem::size_of::<f32>());
 
     let context = Context::new();
 
@@ -23,12 +23,12 @@ fn sgemm_driver(m: usize, n: usize, k: usize, bencher: &mut Bencher) {
             n,
             k,
             7.,
-            a.as_ptr(),
+            a.ptr() as *const f32,
             m,
-            b.as_ptr(),
+            b.ptr() as *const f32,
             k,
             11.,
-            c.as_mut_ptr(),
+            c.ptr() as *mut f32,
             m,
         );
     });

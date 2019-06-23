@@ -19,7 +19,7 @@ struct BlockSizes {
 impl Context {
     pub fn new() -> Context {
         let f32_blocksizes = BlockSizes {
-            mc: 256,
+            mc: 512,
             kc: 512,
             nc: 4096,
         };
