@@ -17,3 +17,5 @@ unsafe impl Send for DSend {}
 pub struct DSendMut(pub *mut f64);
 
 unsafe impl Send for DSendMut {}
+
+a
