@@ -20,3 +20,4 @@ unsafe impl Send for DSendMut {}
 
 a
 b
+c
